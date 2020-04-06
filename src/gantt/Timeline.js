@@ -350,8 +350,7 @@ anychart.ganttModule.TimeLine = function(opt_controller, opt_isResources) {
 
   anychart.core.settings.createDescriptorsMeta(this.descriptorsMeta, [
     ['columnStroke', anychart.ConsistencyState.APPEARANCE, anychart.Signal.NEEDS_REDRAW],
-    ['cropLabels', anychart.ConsistencyState.TIMELINE_ELEMENTS_LABELS, anychart.Signal.NEEDS_REDRAW]
-    ['columnStroke', anychart.ConsistencyState.APPEARANCE, anychart.Signal.NEEDS_REDRAW],
+    ['cropLabels', anychart.ConsistencyState.TIMELINE_ELEMENTS_LABELS, anychart.Signal.NEEDS_REDRAW],
     ['zoomOnMouseWheel', 0, 0],
     ['workingFill', 0, 0, 0, function() {
       var fill = /** @type {acgraph.vector.Fill} */ (this.getOption('workingFill'));
@@ -587,8 +586,7 @@ anychart.ganttModule.TimeLine.COLOR_DESCRIPTORS = (function() {
   var map = {};
   anychart.core.settings.createDescriptors(map, [
     [anychart.enums.PropertyHandlerType.MULTI_ARG, 'columnStroke', anychart.core.settings.strokeNormalizer],
-    [anychart.enums.PropertyHandlerType.SINGLE_ARG, 'cropLabels', anychart.core.settings.booleanNormalizer]
-    [anychart.enums.PropertyHandlerType.MULTI_ARG, 'columnStroke', anychart.core.settings.strokeNormalizer],
+    [anychart.enums.PropertyHandlerType.SINGLE_ARG, 'cropLabels', anychart.core.settings.booleanNormalizer],
     [anychart.enums.PropertyHandlerType.SINGLE_ARG, 'zoomOnMouseWheel', anychart.core.settings.booleanNormalizer],
     [anychart.enums.PropertyHandlerType.MULTI_ARG, 'workingFill', anychart.core.settings.fillNormalizer],
     [anychart.enums.PropertyHandlerType.MULTI_ARG, 'notWorkingFill', anychart.core.settings.fillNormalizer],
