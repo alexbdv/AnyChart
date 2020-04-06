@@ -346,6 +346,7 @@ anychart.ganttModule.TimeLine = function(opt_controller, opt_isResources) {
    */
   this.currentLowerTicksUnit_ = null;
 
+  // TODO: describe
   this.milestonePreviewLabelsCache_ = new Map();
 
   anychart.core.settings.createDescriptorsMeta(this.descriptorsMeta, [
@@ -5746,7 +5747,12 @@ anychart.ganttModule.TimeLine.prototype.markersInvalidated = function() {
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.labelsInvalidated_ = function(event) {
-  if (event.hasSignal(anychart.Signal.BOUNDS_CHANGED)) {
+  /*
+   Checking for signal "needs redraw" will lead to recalculation of labels crop even if something like fontColor
+   was changed. This is needed, because settings like anchor and position won't emit "bounds changed", but
+   labels cropping should be recalculated.
+   */
+  if (event.hasSignal(anychart.Signal.BOUNDS_CHANGED | anychart.Signal.NEEDS_REDRAW)) {
     this.milestonePreviewLabelsCache_.clear();
   }
   this.invalidate(anychart.ConsistencyState.TIMELINE_ELEMENTS_LABELS, anychart.Signal.NEEDS_REDRAW);
@@ -5814,7 +5820,7 @@ anychart.ganttModule.TimeLine.tagsBinaryInsertCallback = function(tag1, tag2) {
  */
 anychart.ganttModule.TimeLine.prototype.getPreviewMilestonesTags_ = function(depth, tagsArr, item, row) {
   var depthOption = this.milestones().preview().getOption('depth');
-  // TODO: remove this checks, as they are not needed, probably.
+
   var depthMatches = !goog.isDefAndNotNull(depthOption) || //null or undefined value will display ALL submilestones of parent.
       (depth <= depthOption);
 
@@ -5874,12 +5880,12 @@ anychart.ganttModule.TimeLine.prototype.applyTagCache = function(tag, cache) {
 /**
  * Check if adjacent milestone previews labels overlap, taking milestone preview
  * marker itself into account.
- * @param {anychart.ganttModule.TimeLine.Tag} curTag - Tag representing mileston preview.
- * @param {anychart.ganttModule.TimeLine.Tag} nextTag - Tag representing mileston preview.
+ * @param {anychart.ganttModule.TimeLine.Tag} curTag - Tag representing milestone preview.
+ * @param {anychart.ganttModule.TimeLine.Tag} nextTag - Tag representing milestone preview.
  * @param {boolean} firstHasPriority - Tag with priority does not get cropped.
  * @private
  */
-anychart.ganttModule.TimeLine.prototype.checkLabelsOverlap_ = function(curTag, nextTag, firstHasPriority) {
+anychart.ganttModule.TimeLine.prototype.checkPreviewMilestonesLabelsOverlap_ = function(curTag, nextTag, firstHasPriority) {
   var curLabel = curTag.label;
   var nextLabel = nextTag.label;
 
@@ -5993,13 +5999,13 @@ anychart.ganttModule.TimeLine.prototype.checkOverlapsOnRow_ = function(item) {
         this.applyTagCache(curTag, cache.get(curTagCacheKey));
         this.applyTagCache(nextTag, cache.get(nextTagCacheKey));
       } else {
-        this.checkLabelsOverlap_(curTag, nextTag, firstHasPriority);
+        this.checkPreviewMilestonesLabelsOverlap_(curTag, nextTag, firstHasPriority);
       }
 
       if (curTag.label.enabled()) {
         lastTagWithEnabledLabel = curTag;
       } else if (goog.isDef(lastTagWithEnabledLabel)) {
-        this.checkLabelsOverlap_(lastTagWithEnabledLabel, nextTag, firstHasPriority);
+        this.checkPreviewMilestonesLabelsOverlap_(lastTagWithEnabledLabel, nextTag, firstHasPriority);
       }
     }
   }
@@ -6022,7 +6028,7 @@ anychart.ganttModule.TimeLine.prototype.checkOverlap_ = function() {
 
   for (var i = startIndex; i <= endIndex; i++) {
     var item = visibleItems[i];
-    if (anychart.ganttModule.BaseGrid.isGroupingTask(item) || anychart.ganttModule.BaseGrid.isBaseline(item)) {
+    if (anychart.ganttModule.BaseGrid.isGroupingTask(item) || anychart.ganttModule.BaseGrid.isBaseline(item)) { // Why baseline?
       this.checkOverlapsOnRow_(item);
     }
   }
