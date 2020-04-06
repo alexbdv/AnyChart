@@ -287,7 +287,7 @@ anychart.ganttModule.Chart.prototype.hoverMode = function(opt_value) {
     }
     return this;
   }
-  return /** @type {anychart.enums.HoverMode}*/(this.hoverMode_);
+  return /** @type {anychart.enums.HoverMode} */(this.hoverMode_);
 };
 
 
@@ -312,6 +312,19 @@ anychart.ganttModule.Chart.prototype.scrollInvalidated_ = function(event) {
   if (event.hasSignal(anychart.Signal.NEEDS_REDRAW)) event.target.draw();
   if (event.hasSignal(anychart.Signal.BOUNDS_CHANGED))
     this.invalidate(anychart.ConsistencyState.BOUNDS, anychart.Signal.NEEDS_REDRAW);
+};
+
+
+/**
+ * Data grid invalidation handler.
+ * @param {anychart.SignalEvent} event - Event object.
+ * @private
+ */
+anychart.ganttModule.Chart.prototype.dataGridInvalidated_ = function(event) {
+  if (event.hasSignal(anychart.Signal.ENABLED_STATE_CHANGED)) {
+    this.invalidate(anychart.ConsistencyState.BOUNDS, anychart.Signal.NEEDS_REDRAW);
+  }
+  this.controller_.run();
 };
 
 
@@ -415,9 +428,7 @@ anychart.ganttModule.Chart.prototype.getDataGrid_ = function() {
     this.setupCreated('dataGrid', this.dg_);
     this.dg_.zIndex(anychart.getFlatTheme('defaultDataGrid')['zIndex']);
     this.dg_.setInteractivityHandler(this);
-    this.dg_.listenSignals(function() {
-      this.controller_.run();
-    }, this);
+    this.dg_.listenSignals(this.dataGridInvalidated_, this);
   }
 
   return this.dg_;
@@ -432,14 +443,7 @@ anychart.ganttModule.Chart.prototype.getDataGrid_ = function() {
  */
 anychart.ganttModule.Chart.prototype.dataGrid = function(opt_enabled) {
   if (goog.isDef(opt_enabled)) {
-    if (this.getDataGrid_().enabled() != opt_enabled) {
-      anychart.core.Base.suspendSignalsDispatching(this.getDataGrid_(), this.splitter());
-      this.getDataGrid_().enabled(opt_enabled);
-      this.splitter().enabled(opt_enabled);
-      anychart.core.Base.resumeSignalsDispatchingFalse(this.getDataGrid_(), this.splitter()); //We don't need to send any signal.
-
-      this.invalidate(anychart.ConsistencyState.BOUNDS, anychart.Signal.NEEDS_REDRAW); //Invalidate a whole chart.
-    }
+    this.getDataGrid_().enabled(opt_enabled);
     return this;
   }
   return this.getDataGrid_();
@@ -521,52 +525,52 @@ anychart.ganttModule.Chart.prototype.fitAll = function() {
  * @return {anychart.ganttModule.Chart} - Itself for method chaining.
  */
 anychart.ganttModule.Chart.prototype.fitToTask = function(taskId) {
-  var foundTasks = this.data_.searchItems(anychart.enums.GanttDataFields.ID, taskId);
-  if (foundTasks.length) {
-    var task = foundTasks[0];
-    var actualStart = task.meta(anychart.enums.GanttDataFields.ACTUAL_START);
-    var actualEnd = task.meta(anychart.enums.GanttDataFields.ACTUAL_END);
-    var isMilestone = goog.isDef(actualStart) && ((!isNaN(actualStart) && !goog.isDef(actualEnd)) || (actualStart == actualEnd));
-    if (isMilestone) { //no range for milestone.
-      anychart.core.reporting.warning(anychart.enums.WarningCode.GANTT_FIT_TO_TASK, null, [taskId]);
-    } else {
-      this.getTimeline().getScale().setRange(actualStart, actualEnd); //this will redraw timeline first time.
+  var bounds = this.tl_.pixelBoundsCache;
+  if (bounds && bounds.width) { // This condition fixes falling test on hidden container when bounds is null.
+    var foundTasks = this.data_.searchItems(anychart.enums.GanttDataFields.ID, taskId);
+    if (foundTasks.length) {
+      var task = foundTasks[0];
+      var actualStart = task.meta(anychart.enums.GanttDataFields.ACTUAL_START);
+      var actualEnd = task.meta(anychart.enums.GanttDataFields.ACTUAL_END);
+      var isMilestone = goog.isDef(actualStart) && ((!isNaN(actualStart) && !goog.isDef(actualEnd)) || (actualStart == actualEnd));
+      if (isMilestone) { //no range for milestone.
+        anychart.core.reporting.warning(anychart.enums.WarningCode.GANTT_FIT_TO_TASK, null, [taskId]);
+      } else {
+        this.getTimeline().getScale().setRange(actualStart, actualEnd); //this will redraw timeline first time.
 
-      var bounds = this.tl_.pixelBoundsCache;
+        if (bounds.width > 0) {
+          var relatedBounds = task.meta('relBounds');
+          var label = task.meta('label');
+          if (label) {
+            var labelBounds = this.tl_.labels().measure(label, label.positionProvider());
+            if (relatedBounds && labelBounds) {
+              var labelLefter = labelBounds.left < relatedBounds.left;
+              var labelRighter = labelBounds.left + labelBounds.width > relatedBounds.left + relatedBounds.width;
 
-      if (bounds.width > 0) {
-        var relatedBounds = task.meta('relBounds');
-        var label = task.meta('label');
-        if (label) {
-          var labelBounds = this.tl_.labels().measure(label, label.positionProvider());
-          if (relatedBounds && labelBounds) {
-            var labelLefter = labelBounds.left < relatedBounds.left;
-            var labelRighter = labelBounds.left + labelBounds.width > relatedBounds.left + relatedBounds.width;
-
-            var leftVal, rightVal;
-            if (labelBounds.width < bounds.width) {
-              var enlargeRatio = bounds.width / (bounds.width - labelBounds.width);
-              if (labelLefter && !labelRighter) {
-                leftVal = this.tl_.scale().ratioToTimestamp(1 - enlargeRatio);
-                rightVal = this.tl_.scale().ratioToTimestamp(1);
-              }
-              if (labelRighter && !labelLefter) {
+              var leftVal, rightVal;
+              if (labelBounds.width < bounds.width) {
+                var enlargeRatio = bounds.width / (bounds.width - labelBounds.width);
+                if (labelLefter && !labelRighter) {
+                  leftVal = this.tl_.scale().ratioToTimestamp(1 - enlargeRatio);
+                  rightVal = this.tl_.scale().ratioToTimestamp(1);
+                }
+                if (labelRighter && !labelLefter) {
+                  leftVal = this.tl_.scale().ratioToTimestamp(0);
+                  rightVal = this.tl_.scale().ratioToTimestamp(enlargeRatio);
+                }
+              } else {
                 leftVal = this.tl_.scale().ratioToTimestamp(0);
-                rightVal = this.tl_.scale().ratioToTimestamp(enlargeRatio);
+                rightVal = this.tl_.scale().ratioToTimestamp(labelBounds.width / bounds.width);
               }
-            } else {
-              leftVal = this.tl_.scale().ratioToTimestamp(0);
-              rightVal = this.tl_.scale().ratioToTimestamp(labelBounds.width / bounds.width);
+              this.getTimeline().getScale().setRange(leftVal, rightVal); //this will redraw timeline second time.
             }
-            this.getTimeline().getScale().setRange(leftVal, rightVal); //this will redraw timeline second time.
           }
         }
       }
+    } else {
+      anychart.core.reporting.warning(anychart.enums.WarningCode.NOT_FOUND, null, ['Task', taskId]);
     }
-  } else {
-    anychart.core.reporting.warning(anychart.enums.WarningCode.NOT_FOUND, null, ['Task', taskId]);
   }
-
   return this;
 };
 
@@ -1145,7 +1149,10 @@ anychart.ganttModule.Chart.prototype.drawContent = function(bounds) {
         this.controller_.availableHeight(newAvailableHeight);
       }
 
-      if (this.dg_.enabled()) {
+      var isDataGridEnabled = /** @type {boolean} */(this.dg_.enabled());
+      this.splitter_.enabled(isDataGridEnabled);
+
+      if (isDataGridEnabled) {
         var b1 = this.splitter_.getLeftBounds();
         var b2 = this.splitter_.getRightBounds();
         this.dg_.bounds().set(b1);
@@ -1198,9 +1205,6 @@ anychart.ganttModule.Chart.prototype.drawContent = function(bounds) {
     //This consistency state is used to set 'checkDrawingNeeded()' to TRUE. Controller must be run anyway.
     this.markConsistent(anychart.ConsistencyState.GANTT_POSITION);
   }
-
-  if (anychart.isAsync()) // ASYNC feature, not needed in regular gantt flow.
-    this.dispatchEvent(anychart.enums.EventType.WORKING_START);
 };
 
 
