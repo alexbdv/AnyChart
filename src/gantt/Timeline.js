@@ -5958,7 +5958,7 @@ anychart.ganttModule.TimeLine.prototype.checkPreviewMilestonesLabelsOverlap_ = f
  * @param {(anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem)} item
  * @private
  */
-anychart.ganttModule.TimeLine.prototype.checkOverlapsOnRow_ = function(item) {
+anychart.ganttModule.TimeLine.prototype.checkPreviewMilestonesOverlapsOnRow_ = function(item) {
   var tagsData;
   if (anychart.ganttModule.BaseGrid.isGroupingTask(item)) {
     tagsData = this.groupingTasks().shapeManager.getTagsData();
@@ -6011,6 +6011,46 @@ anychart.ganttModule.TimeLine.prototype.checkOverlapsOnRow_ = function(item) {
   }
 };
 
+anychart.ganttModule.TimeLine.prototype.getItemTag_ = function(tagsData, item) {
+  for (var tagKey in tagsData) {
+    if (tagsData.hasOwnProperty(tagKey)) {
+      var tag = tagsData[tagKey];
+      if (tag.item === item) {
+        return tag;
+      }
+    }
+  }
+  return null;
+};
+
+anychart.ganttModule.TimeLine.prototype.cropPeriodLabels_ = function(item) {
+  var tagsData = this.periods().shapeManager.getTagsData();
+  var periods = item.get('periods');
+
+  var periodsTags = [];
+  for (var tagKey in tagsData) {
+    if (tagsData.hasOwnProperty(tagKey)) {
+      var tag = tagsData[tagKey];
+      if (tag.item === item) {
+        periodsTags.push(tag);
+      }
+    }
+  }
+
+  for (var i = 0; i < periodsTags.length; i++) {
+    var curTag = periodsTags[i];
+    // var nextTag = periodsTags[i + 1];
+
+    var labelBounds = curTag.label.getTextElement().getBounds();
+    if (curTag.bounds.width < labelBounds.width) {
+      curTag.label.width(curTag.bounds.width);
+      curTag.label.height(labelBounds.height);
+    }
+
+    // debugger;
+  }
+};
+
 
 /**
  * Checks if milestone preview labels overlap and crops
@@ -6029,7 +6069,9 @@ anychart.ganttModule.TimeLine.prototype.checkOverlap_ = function() {
   for (var i = startIndex; i <= endIndex; i++) {
     var item = visibleItems[i];
     if (anychart.ganttModule.BaseGrid.isGroupingTask(item) || anychart.ganttModule.BaseGrid.isBaseline(item)) { // Why baseline?
-      this.checkOverlapsOnRow_(item);
+      this.checkPreviewMilestonesOverlapsOnRow_(item);
+    } else if (anychart.ganttModule.BaseGrid.isPeriod(item)) {
+      this.cropPeriodLabels_(item);
     }
   }
 };
