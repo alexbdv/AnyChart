@@ -5,6 +5,7 @@ goog.provide('anychart.sunburstModule.Chart');
 goog.require('anychart.color');
 goog.require('anychart.core.ICenterContentChart');
 goog.require('anychart.core.IShapeManagerUser');
+goog.require('anychart.core.StatefulColoring');
 goog.require('anychart.core.StateSettings');
 goog.require('anychart.core.reporting');
 goog.require('anychart.core.settings');
@@ -86,6 +87,21 @@ anychart.sunburstModule.Chart = function(opt_data, opt_fillMethod) {
    * @private
    */
   this.hatchFillPalette_ = null;
+
+  /**
+   * TODO (A.Kudryavtsev): JSDoc.
+   *
+   * @type {anychart.core.StatefulColoring}
+   * @private
+   */
+  this.statefulColoring_ = null;
+
+  /**
+   * TODO (A.Kudryavtsev): JSDoc.
+   *
+   * @type {Object.<acgraph.vector.Path>}
+   */
+  this.statefulColoringPaths = {};
 
   this.invalidate(anychart.ConsistencyState.ALL);
 
@@ -1228,6 +1244,38 @@ anychart.sunburstModule.Chart.prototype.getStroke_ = function(pointState) {
   return strokeColor;
 };
 
+/**
+ * TODO (A.Kudryavtsev): JSDoc.
+ *
+ * @returns {?acgraph.vector.Fill}
+ * @private
+ */
+anychart.sunburstModule.Chart.prototype.extractStateColor_ = function() {
+  // ..**^^ Stateful coloring magic starts here ^^**..
+  var item = this.getIterator().getItem();
+  if (this.statefulColoring_) {
+    // TODO (A.Kudryavtsev): Can we move these calculations to StatefulColoring somehow?
+    var colors = this.statefulColoring_.colors;
+    if (colors) {
+      var checkers = this.statefulColoring_.checkers;
+      if (checkers) {
+        var state = this.statefulColoring_.state;
+        for (var i = 0; i < checkers.length; i++) {
+          var checker = checkers[i];
+          var res = checker(item, state);
+          if (res && res in colors) {
+            var fillRef = colors[res];
+            item.meta('fill', fillRef);
+            return fillRef;
+          }
+        }
+      }
+    }
+  }
+  return null;
+  // ..**^^ Stateful coloring magic ends here ^^**..
+};
+
 
 /**
  * @param {number} pointState
@@ -1272,7 +1320,7 @@ anychart.sunburstModule.Chart.prototype.colorizePoint = function(pointState) {
   var path = /** @type {acgraph.vector.Path} */(iterator.meta('path'));
 
   //needs here for children resolve colors
-  var fill = this.getFill_(pointState);
+  var fill = this.extractStateColor_() || this.getFill_(pointState);
   var stroke = this.getStroke_(pointState);
   var hatchFill = this.getHatchFill_(pointState);
 
@@ -1292,6 +1340,20 @@ anychart.sunburstModule.Chart.prototype.colorizePoint = function(pointState) {
           .fill(hatchFill);
     }
   }
+};
+
+
+/**
+ * @return {anychart.core.StatefulColoring}
+ */
+anychart.sunburstModule.Chart.prototype.statefulColoring = function() {
+  if (!this.statefulColoring_) {
+    this.statefulColoring_ = new anychart.core.StatefulColoring();
+    this.statefulColoring_.listen(anychart.enums.EventType.STATE_CHANGE, function() {
+      this.invalidate(anychart.ConsistencyState.APPEARANCE, anychart.Signal.NEEDS_REDRAW);
+    }, void 0, this);
+  }
+  return this.statefulColoring_;
 };
 
 
@@ -2008,6 +2070,67 @@ anychart.sunburstModule.Chart.prototype.calculate = function() {
   }
 };
 
+/**
+ * Initializes basic dom elements.
+ *
+ * @private
+ */
+anychart.sunburstModule.Chart.prototype.initDom_ = function() {
+  if (!this.dataLayer_) {
+    // --- Initializing data layer.
+    this.dataLayer_ = new anychart.core.utils.TypedLayer(function() {
+      return acgraph.path();
+    }, function(el) {
+      (/** @type {!acgraph.vector.Path} */(el)).clear();
+    });
+
+    this.dataLayer_.zIndex(anychart.sunburstModule.Chart.ZINDEX_SERIES);
+    this.dataLayer_.parent(this.rootElement);
+    this.initInteractivityControlsWrapper_();
+
+    // --- Initializing hatch layer.
+    this.hatchLayer_ = new anychart.core.utils.TypedLayer(function() {
+      return acgraph.path();
+    }, function(el) {
+      (/** @type {!acgraph.vector.Path} */(el)).clear();
+    });
+
+    this.hatchLayer_.zIndex(anychart.sunburstModule.Chart.ZINDEX_HATCH_FILL);
+    this.hatchLayer_.parent(this.rootElement);
+    this.hatchLayer_.disablePointerEvents(true);
+
+
+    this.statefulColoringLayer_ = this.rootElement.layer();
+    //TODO (A.Kudryavtsev): Is it really must be above?
+    this.statefulColoringLayer_.zIndex(anychart.sunburstModule.Chart.ZINDEX_HATCH_FILL + 1);
+    this.statefulColoringLayer_.disablePointerEvents(true);
+  }
+};
+
+/**
+ * TODO (A.Kudryavtsev): JSDoc.
+ *
+ * @private
+ */
+anychart.sunburstModule.Chart.prototype.prepareStatefulColoring_ = function() {
+  if (this.statefulColoring_) {
+    var colors = this.statefulColoring_.colors;
+    if (colors) {
+      var checkers = this.statefulColoring_.checkers;
+      if (checkers) {
+        for (var key in colors) {
+          if (!(key in this.statefulColoringPaths)) {
+            var p = /** @type {acgraph.vector.Path} */ (this.statefulColoringLayer_.path());
+            p.stroke(null);
+            this.statefulColoringPaths[key] = p;
+          }
+          this.statefulColoringPaths[key].clear();
+        }
+      }
+    }
+  }
+};
+
 
 /** @inheritDoc */
 anychart.sunburstModule.Chart.prototype.drawContent = function(bounds) {
@@ -2015,6 +2138,8 @@ anychart.sunburstModule.Chart.prototype.drawContent = function(bounds) {
     return;
 
   this.calculate();
+
+  this.initDom_();
 
   if (this.hasInvalidationState(anychart.ConsistencyState.SUNBURST_CENTER_CONTENT)) {
     if (this.center_.contentLayer) {
@@ -2037,47 +2162,16 @@ anychart.sunburstModule.Chart.prototype.drawContent = function(bounds) {
 
   if (this.hasInvalidationState(anychart.ConsistencyState.BOUNDS)) {
     this.calculateBounds_(bounds);
-
-    if (this.dataLayer_)
-      this.dataLayer_.clip(this.dataBounds_);
-
-    if (this.hatchLayer_)
-      this.hatchLayer_.clip(this.dataBounds_);
-
+    this.dataLayer_.clip(this.dataBounds_);
+    this.hatchLayer_.clip(this.dataBounds_);
+    this.statefulColoringLayer_.clip(this.dataBounds_);
     this.invalidate(anychart.ConsistencyState.APPEARANCE);
   }
 
   if (this.hasInvalidationState(anychart.ConsistencyState.APPEARANCE)) {
-    if (this.dataLayer_) {
-      this.dataLayer_.clear();
-    } else {
-      this.dataLayer_ = new anychart.core.utils.TypedLayer(function() {
-        return acgraph.path();
-      }, function(el) {
-        (/** @type {!acgraph.vector.Path} */(el)).clear();
-      });
-
-      this.dataLayer_.clip(this.dataBounds_);
-      this.dataLayer_.zIndex(anychart.sunburstModule.Chart.ZINDEX_SERIES);
-      this.dataLayer_.parent(this.rootElement);
-
-      this.initInteractivityControlsWrapper_();
-    }
-
-    if (this.hatchLayer_) {
-      this.hatchLayer_.clear();
-    } else {
-      this.hatchLayer_ = new anychart.core.utils.TypedLayer(function() {
-        return acgraph.path();
-      }, function(el) {
-        (/** @type {!acgraph.vector.Path} */(el)).clear();
-      });
-
-      this.hatchLayer_.clip(this.dataBounds_);
-      this.hatchLayer_.zIndex(anychart.sunburstModule.Chart.ZINDEX_HATCH_FILL);
-      this.hatchLayer_.parent(this.rootElement);
-      this.hatchLayer_.disablePointerEvents(true);
-    }
+    this.dataLayer_.clear();
+    this.hatchLayer_.clear();
+    this.prepareStatefulColoring_();
 
     var labels = this.normal_.labels();
     labels.clear();
@@ -3121,5 +3215,7 @@ anychart.sunburstModule.Chart.prototype.setupByJSON = function(config, opt_defau
   proto['hatchFillPalette'] = proto.hatchFillPalette;
 
   proto['toCsv'] = proto.toCsv;
+
+  proto['statefulColoring'] = proto.statefulColoring;
 })();
 //endregion
