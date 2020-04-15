@@ -5,8 +5,8 @@ goog.provide('anychart.sunburstModule.Chart');
 goog.require('anychart.color');
 goog.require('anychart.core.ICenterContentChart');
 goog.require('anychart.core.IShapeManagerUser');
-goog.require('anychart.core.StatefulColoring');
 goog.require('anychart.core.StateSettings');
+goog.require('anychart.core.StatefulColoring');
 goog.require('anychart.core.reporting');
 goog.require('anychart.core.settings');
 goog.require('anychart.core.ui.Center');
@@ -100,8 +100,9 @@ anychart.sunburstModule.Chart = function(opt_data, opt_fillMethod) {
    * TODO (A.Kudryavtsev): JSDoc.
    *
    * @type {Object.<acgraph.vector.Path>}
+   * @private
    */
-  this.statefulColoringPaths = {};
+  this.statefulColoringPaths_ = {};
 
   this.invalidate(anychart.ConsistencyState.ALL);
 
@@ -1247,12 +1248,13 @@ anychart.sunburstModule.Chart.prototype.getStroke_ = function(pointState) {
 /**
  * TODO (A.Kudryavtsev): JSDoc.
  *
- * @returns {?acgraph.vector.Fill}
  * @private
  */
 anychart.sunburstModule.Chart.prototype.extractStateColor_ = function() {
   // ..**^^ Stateful coloring magic starts here ^^**..
   var item = this.getIterator().getItem();
+  var statefulFill = null;
+  var statefulName = null;
   if (this.statefulColoring_) {
     // TODO (A.Kudryavtsev): Can we move these calculations to StatefulColoring somehow?
     var colors = this.statefulColoring_.colors;
@@ -1264,15 +1266,16 @@ anychart.sunburstModule.Chart.prototype.extractStateColor_ = function() {
           var checker = checkers[i];
           var res = checker(item, state);
           if (res && res in colors) {
-            var fillRef = colors[res];
-            item.meta('fill', fillRef);
-            return fillRef;
+            statefulFill = colors[res];
+            statefulName = res;
           }
         }
       }
     }
   }
-  return null;
+
+  item.meta('statefulFill', statefulFill);
+  item.meta('statefulName', statefulName);
   // ..**^^ Stateful coloring magic ends here ^^**..
 };
 
@@ -1320,7 +1323,7 @@ anychart.sunburstModule.Chart.prototype.colorizePoint = function(pointState) {
   var path = /** @type {acgraph.vector.Path} */(iterator.meta('path'));
 
   //needs here for children resolve colors
-  var fill = this.extractStateColor_() || this.getFill_(pointState);
+  var fill = this.getFill_(pointState);
   var stroke = this.getStroke_(pointState);
   var hatchFill = this.getHatchFill_(pointState);
 
@@ -2083,6 +2086,7 @@ anychart.sunburstModule.Chart.prototype.initDom_ = function() {
     }, function(el) {
       (/** @type {!acgraph.vector.Path} */(el)).clear();
     });
+    anychart.utils.nameElement(this.dataLayer_, 'data_layer');
 
     this.dataLayer_.zIndex(anychart.sunburstModule.Chart.ZINDEX_SERIES);
     this.dataLayer_.parent(this.rootElement);
@@ -2094,6 +2098,7 @@ anychart.sunburstModule.Chart.prototype.initDom_ = function() {
     }, function(el) {
       (/** @type {!acgraph.vector.Path} */(el)).clear();
     });
+    anychart.utils.nameElement(this.hatchLayer_, 'hatch_layer');
 
     this.hatchLayer_.zIndex(anychart.sunburstModule.Chart.ZINDEX_HATCH_FILL);
     this.hatchLayer_.parent(this.rootElement);
@@ -2101,6 +2106,7 @@ anychart.sunburstModule.Chart.prototype.initDom_ = function() {
 
 
     this.statefulColoringLayer_ = this.rootElement.layer();
+    anychart.utils.nameElement(this.statefulColoringLayer_, 'stateful_coloring_layer');
     //TODO (A.Kudryavtsev): Is it really must be above?
     this.statefulColoringLayer_.zIndex(anychart.sunburstModule.Chart.ZINDEX_HATCH_FILL + 1);
     this.statefulColoringLayer_.disablePointerEvents(true);
@@ -2119,12 +2125,12 @@ anychart.sunburstModule.Chart.prototype.prepareStatefulColoring_ = function() {
       var checkers = this.statefulColoring_.checkers;
       if (checkers) {
         for (var key in colors) {
-          if (!(key in this.statefulColoringPaths)) {
+          if (!(key in this.statefulColoringPaths_)) {
             var p = /** @type {acgraph.vector.Path} */ (this.statefulColoringLayer_.path());
             p.stroke(null);
-            this.statefulColoringPaths[key] = p;
+            this.statefulColoringPaths_[key] = p;
           }
-          this.statefulColoringPaths[key].clear();
+          this.statefulColoringPaths_[key].clear();
         }
       }
     }
@@ -2551,6 +2557,40 @@ anychart.sunburstModule.Chart.prototype.getLabelCircularTextPath = function(labe
   return path;
 };
 
+/**
+ * TODO (A.Kudryavtsev): JSDoc.
+ *
+ * @param {anychart.PointState|number} pointState - Point state to define stroke.
+ * @private
+ */
+anychart.sunburstModule.Chart.prototype.drawStatefulFill_ = function(pointState) {
+  var iterator = this.getIterator();
+  var statefulFill = /** @type {acgraph.vector.Fill} */ (iterator.meta('statefulFill'));
+  var statefulName = /** @type {string} */ (iterator.meta('statefulName'));
+  if (statefulName in this.statefulColoringPaths_) {
+    var path = this.statefulColoringPaths_[statefulName];
+    var stroke = this.getStroke_(pointState);
+    path.fill(statefulFill);
+    path.stroke(stroke);
+
+    var innerRadius = /** @type {number} */ (iterator.meta('innerRadius'));
+    var outerRadius = /** @type {number} */ (iterator.meta('outerRadius'));
+    var halfStrokeThickness = /** @type {number} */ (iterator.meta('halfStrokeThickness'));
+    var start = /** @type {number} */ (iterator.meta('start'));
+    var sweep = /** @type {number} */ (iterator.meta('sweep'));
+
+    acgraph.vector.primitives.donut(
+        path,
+        this.cx,
+        this.cy,
+        innerRadius + halfStrokeThickness,
+        outerRadius - halfStrokeThickness,
+        start,
+        sweep
+    );
+  }
+};
+
 
 /**
  * Recursively draws node into specified bounds.
@@ -2573,6 +2613,7 @@ anychart.sunburstModule.Chart.prototype.drawNode_ = function(node, parentValue, 
   var index = /** @type {number} */(node.meta('index'));
   var iterator = this.getIterator();
   iterator.select(index);
+  this.extractStateColor_();
 
   var pointState = this.state.getPointStateByIndex(index);
   var numChildren = node.numChildren();
@@ -2625,9 +2666,11 @@ anychart.sunburstModule.Chart.prototype.drawNode_ = function(node, parentValue, 
     iterator.meta('sweep', sweep);
     iterator.meta('innerRadius', innerRadius);
     iterator.meta('outerRadius', outerRadius);
+    iterator.meta('halfStrokeThickness', halfStrokeThickness);
 
     this.makeInteractive(nodePath);
     this.drawLabel_(pointState);
+    this.drawStatefulFill_(pointState);
   } else {
     iterator.meta('path', void 0);
   }

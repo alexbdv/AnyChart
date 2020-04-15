@@ -82,12 +82,6 @@ goog.inherits(anychart.core.StatefulColoring, goog.events.EventTarget);
 /**
  * @typedef {Object.<acgraph.vector.Fill>}
  */
-anychart.core.StatefulColoring.ColorDef;
-
-
-/**
- * @typedef {Array.<anychart.core.StatefulColoring.ColorDef>}
- */
 anychart.core.StatefulColoring.Colors;
 
 
