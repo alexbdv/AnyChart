@@ -89,7 +89,7 @@ anychart.sunburstModule.Chart = function(opt_data, opt_fillMethod) {
   this.hatchFillPalette_ = null;
 
   /**
-   * TODO (A.Kudryavtsev): JSDoc.
+   * Stateful coloring instance.
    *
    * @type {anychart.core.StatefulColoring}
    * @private
@@ -97,7 +97,7 @@ anychart.sunburstModule.Chart = function(opt_data, opt_fillMethod) {
   this.statefulColoring_ = null;
 
   /**
-   * TODO (A.Kudryavtsev): JSDoc.
+   * Paths cache for stateful coloring.
    *
    * @type {Object.<acgraph.vector.Path>}
    * @private
@@ -1246,7 +1246,7 @@ anychart.sunburstModule.Chart.prototype.getStroke_ = function(pointState) {
 };
 
 /**
- * TODO (A.Kudryavtsev): JSDoc.
+ * Extracts stateful coloring for exact data item and puts it to meta.
  *
  * @private
  */
@@ -1274,8 +1274,12 @@ anychart.sunburstModule.Chart.prototype.extractStateColor_ = function() {
     }
   }
 
+  // Used to set fill.
   item.meta('statefulFill', statefulFill);
+
+  // Used to get path from stateful coloring paths cache.
   item.meta('statefulName', statefulName);
+
   // ..**^^ Stateful coloring magic ends here ^^**..
 };
 
@@ -1347,6 +1351,9 @@ anychart.sunburstModule.Chart.prototype.colorizePoint = function(pointState) {
 
 
 /**
+ * Stateful coloring getter.
+ * Internal QLIK-specific feature, no need to work like getter/setter.
+ *
  * @return {anychart.core.StatefulColoring}
  */
 anychart.sunburstModule.Chart.prototype.statefulColoring = function() {
@@ -1363,7 +1370,8 @@ anychart.sunburstModule.Chart.prototype.statefulColoring = function() {
 //endregion
 //region --- Center content
 /**
- * Pie center settings.
+ * Chart center settings.
+ *
  * @param {Object=} opt_value
  * @return {anychart.sunburstModule.Chart|anychart.core.ui.Center}
  */
@@ -2144,7 +2152,6 @@ anychart.sunburstModule.Chart.prototype.drawContent = function(bounds) {
     return;
 
   this.calculate();
-
   this.initDom_();
 
   if (this.hasInvalidationState(anychart.ConsistencyState.SUNBURST_CENTER_CONTENT)) {
@@ -2558,7 +2565,7 @@ anychart.sunburstModule.Chart.prototype.getLabelCircularTextPath = function(labe
 };
 
 /**
- * TODO (A.Kudryavtsev): JSDoc.
+ * Draws path over the real slice path by stateful coloring.
  *
  * @param {anychart.PointState|number} pointState - Point state to define stroke.
  * @private

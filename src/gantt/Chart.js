@@ -772,6 +772,9 @@ anychart.ganttModule.Chart.prototype.splitter = function(opt_value) {
 
 
 /**
+ * Stateful coloring getter.
+ * Internal QLIK-specific feature, no need to work like getter/setter.
+ *
  * @return {anychart.core.StatefulColoring}
  */
 anychart.ganttModule.Chart.prototype.statefulColoring = function() {
