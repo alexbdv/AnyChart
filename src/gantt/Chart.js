@@ -778,10 +778,8 @@ anychart.ganttModule.Chart.prototype.rowsColoring = function() {
   if (!this.rowsColoringInternal) {
     this.rowsColoringInternal = new anychart.ganttModule.rendering.RowsColoring(this);
     this.rowsColoringInternal.listen('statechange', function() {
-      anychart.core.Base.suspendSignalsDispatching(this.getTimeline(), this.getDataGrid_());
       this.tl_.invalidate(anychart.ConsistencyState.BASE_GRID_REDRAW, anychart.Signal.NEEDS_REDRAW);
       this.dg_.invalidate(anychart.ConsistencyState.BASE_GRID_REDRAW, anychart.Signal.NEEDS_REDRAW);
-      anychart.core.Base.resumeSignalsDispatchingTrue(this.dg_, this.tl_);
     }, void 0, this);
   }
   return this.rowsColoringInternal;
