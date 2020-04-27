@@ -5825,7 +5825,7 @@ anychart.ganttModule.TimeLine.prototype.getPreviewMilestonesTags_ = function(dep
       (depth <= depthOption);
 
   if (depthMatches) {
-    if (anychart.ganttModule.BaseGrid.isMilestone(item)) {
+    if (anychart.ganttModule.BaseGrid.isProjectMilestone(item)) {
       var tag = this.getTagByItemAndElement(item, this.milestones().preview(), row);
       var label = goog.isDefAndNotNull(tag) ? tag.label : void 0;
       if (goog.isDef(label) && label.enabled()) {
@@ -6024,7 +6024,10 @@ anychart.ganttModule.TimeLine.prototype.getItemTag_ = function(tagsData, item) {
 };
 
 anychart.ganttModule.TimeLine.prototype.cropPeriodLabels_ = function(item) {
-  var tagsData = this.periods().shapeManager.getTagsData();
+  // var tagsData = this.periods().shapeManager.getTagsData();
+  var tagsData = { ...this.periods().shapeManager.getTagsData(), ...this.milestones().shapeManager.getTagsData() };
+  this.milestones().shapeManager.getTagsData();
+
   var periods = item.get('periods');
 
   var periodsTags = [];
@@ -6055,9 +6058,11 @@ anychart.ganttModule.TimeLine.prototype.cropPeriodLabels_ = function(item) {
 /**
  * Checks if milestone preview labels overlap and crops
  * them if they do.
+ * Does it by iterating all uncollapsed items from startIndex (first visible) to
+ * endIndex (last visible) items.
  * @private
  */
-anychart.ganttModule.TimeLine.prototype.checkOverlap_ = function() {
+anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
   // Returns all uncollapsed items.
   var visibleItems = this.getVisibleItems();
 
@@ -6068,13 +6073,146 @@ anychart.ganttModule.TimeLine.prototype.checkOverlap_ = function() {
 
   for (var i = startIndex; i <= endIndex; i++) {
     var item = visibleItems[i];
-    if (anychart.ganttModule.BaseGrid.isGroupingTask(item) || anychart.ganttModule.BaseGrid.isBaseline(item)) { // Why baseline?
-      this.checkPreviewMilestonesOverlapsOnRow_(item);
-    } else if (anychart.ganttModule.BaseGrid.isPeriod(item)) {
-      this.cropPeriodLabels_(item);
+
+    const tags = this.getTagsFromItemRow_(item);
+    this.cropTagsLabels_(tags);
+
+    // if (anychart.ganttModule.BaseGrid.isGroupingTask(item) || anychart.ganttModule.BaseGrid.isBaseline(item)) { // Why baseline?
+    //   this.checkPreviewMilestonesOverlapsOnRow_(item);
+    // } else if (anychart.ganttModule.BaseGrid.isPeriod(item)) {
+    //   this.cropPeriodLabels_(item);
+    // }
+  }
+
+  return;
+
+
+  const tags = this.getTagsFromItemRow_(item);
+  //crops label on tag, by checking previous/next label and tag itself
+  this.cropTagsLabels_(tags);
+
+  // for (let i = 0; i < tags.length; i++) {
+  //   this.cropTagLabel(i, tags);
+  // }
+};
+
+//region Test new flow
+
+/**
+ * Crops labels for lanchor left.
+ *
+ * @param tags
+ * @private
+ */
+anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorLeft_ = function(prev, cur, next) {
+
+};
+
+anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(prev, cur, next) {
+
+};
+
+anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(prev, cur, next) {
+
+}
+
+anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
+  var LABEL_DISABLE_THRESHOLD = 20;
+  for (var i = 0; i < tags.length; i++) {
+    const tag = tags[i];
+    var previousTag = i > 0 ? tags[i - 1] : null;
+    var currentTag = tags[i];
+    var nextTag = (i < (tags.length - 1)) ? tags[i + 1] : null;
+
+    if (nextTag) {
+      var currentTagLabelBounds = currentTag.label.bounds_;
+      /*    \/ - positive delta, they do not intersect.
+              ________
+      ====   |
+             `````````
+                \/ - negative delta, they intersect.
+              ________
+      =======|====
+             `````````
+       ________ \/ - negative delta, they do not intersect (two close to each other milestones and label offset).
+      |       |    =====
+      `````````
+       */
+      var currentLabelNextTagDelta = nextTag.bounds.getLeft() - currentTagLabelBounds.getRight();
+
+      var areCurrentAndNextIntersecting = currentLabelNextTagDelta < 0;
+
+      if (areCurrentAndNextIntersecting) {
+        var newWidth = currentTagLabelBounds.width + currentLabelNextTagDelta;
+        if (newWidth >= LABEL_DISABLE_THRESHOLD) {
+          currentTag.label.width(currentTagLabelBounds.width + currentLabelNextTagDelta);
+          currentTag.label.height(currentTag.label.bounds_.height);
+        } else {
+          currentTag.label.enabled(false);
+        }
+      }
     }
+
+    console.log('Processing tag ' + i, tag);
   }
 };
+
+anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = function(item) {
+  var tagsData;
+  if (anychart.ganttModule.BaseGrid.isGroupingTask(item)) {
+    tagsData = this.groupingTasks().shapeManager.getTagsData();
+  } else if (anychart.ganttModule.BaseGrid.isBaseline(item)) {
+    tagsData = this.baselines().shapeManager.getTagsData();
+  }
+
+  var itemTag;
+
+  for (var tagKey in tagsData) {
+    if (tagsData.hasOwnProperty(tagKey)) {
+      var tag = tagsData[tagKey];
+      if (tag.item === item) {
+        itemTag = tag;
+        break;
+      }
+    }
+  }
+
+  var tags = [];
+
+  if (goog.isDef(itemTag)) {
+    var curRow = this.getTagRow(itemTag);
+    this.getPreviewMilestonesTags_(0, tags, item, curRow);
+  }
+
+  return tags;
+};
+
+anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function(item) {
+  var tagsData = { ...this.periods().shapeManager.getTagsData(), ...this.milestones().shapeManager.getTagsData() };
+
+  var periodsTags = [];
+  for (var tagKey in tagsData) {
+    if (tagsData.hasOwnProperty(tagKey)) {
+      var tag = tagsData[tagKey];
+      if (tag.item === item) {
+        // periodsTags.push(tag);
+        goog.array.binaryInsert(periodsTags, tag, anychart.ganttModule.TimeLine.tagsBinaryInsertCallback);
+      }
+    }
+  }
+
+  return periodsTags;
+};
+
+anychart.ganttModule.TimeLine.prototype.getTagsFromItemRow_ = function(item) {
+  if (anychart.ganttModule.BaseGrid.isPeriod(item)) {
+    return this.getTagsFromResourcePeriodRow_(item);
+  } else if (anychart.ganttModule.BaseGrid.isGroupingTask(item) || anychart.ganttModule.BaseGrid.isBaseline(item)) {
+    return this.getTagsFromProjectGroupingTask_(item);
+  }
+  return [];
+};
+//endregion
 
 
 /**
@@ -6179,8 +6317,9 @@ anychart.ganttModule.TimeLine.prototype.drawLabels_ = function() {
     }
   }
 
-  if (this.getOption('cropLabels')) {
-    this.checkOverlap_();
+  // If elements are not initialised - most probably chart was not drawn.
+  if (this.getOption('cropLabels') && this.elements_) {
+    this.cropElementsLabels_();
   }
 
   this.labels().resumeSignalsDispatching(true);
