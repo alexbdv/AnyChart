@@ -6237,20 +6237,12 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorLeft_ = function(prev, cur, next) {
-
-};
-
-anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(prev, cur, next) {
-
-};
-
-anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(prev, cur, next) {
   if (next) {
     var currentTagLabelBounds = cur.label.getTextElement().getBounds();
     var nextTagLabelAnchor = next.label.getFinalSettings('anchor').split('-')[0];
 
     switch(nextTagLabelAnchor) {
-      case 'right': {
+      case 'left': {
         var delta = next.bounds.getLeft() - currentTagLabelBounds.getRight();
         var newWidth = currentTagLabelBounds.width + delta;
         if (delta < 0 && newWidth >= 20) {
@@ -6261,7 +6253,7 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(pr
         }
         break;
       }
-      case 'left': {
+      case 'right': {
         break;
       }
       case 'center': {
@@ -6273,6 +6265,16 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(pr
     // if (nextTagLabelAnchor === 'right') {
     //
     // }
+  }
+};
+
+anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(prev, cur, next) {
+
+};
+
+anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(prev, cur, next) {
+  if (prev) {
+
   }
 };
 
