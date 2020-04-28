@@ -6206,7 +6206,7 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
   for (var i = startIndex; i <= endIndex; i++) {
     var item = visibleItems[i];
 
-    const tags = this.getTagsFromItemRow_(item);
+    var tags = this.getTagsFromItemRow_(item);
     this.cropTagsLabels_(tags);
 
     // if (anychart.ganttModule.BaseGrid.isGroupingTask(item) || anychart.ganttModule.BaseGrid.isBaseline(item)) { // Why baseline?
@@ -6219,7 +6219,7 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
   return;
 
 
-  const tags = this.getTagsFromItemRow_(item);
+  var tags = this.getTagsFromItemRow_(item);
   //crops label on tag, by checking previous/next label and tag itself
   this.cropTagsLabels_(tags);
 
@@ -6245,48 +6245,101 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(p
 };
 
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(prev, cur, next) {
+  if (next) {
+    var currentTagLabelBounds = cur.label.getTextElement().getBounds();
+    var nextTagLabelAnchor = next.label.getFinalSettings('anchor').split('-')[0];
 
-}
+    switch(nextTagLabelAnchor) {
+      case 'right': {
+        var delta = next.bounds.getLeft() - currentTagLabelBounds.getRight();
+        var newWidth = currentTagLabelBounds.width + delta;
+        if (delta < 0 && newWidth >= 20) {
+          cur.label.width(newWidth);
+          cur.label.height(currentTagLabelBounds.height);
+        } else { // resulting label is too small
+          cur.label.enabled(false);
+        }
+        break;
+      }
+      case 'left': {
+        break;
+      }
+      case 'center': {
+        break;
+      }
+      default:
+        break;
+    }
+    // if (nextTagLabelAnchor === 'right') {
+    //
+    // }
+  }
+};
+
+anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev, cur, next) {
+
+};
 
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
   var LABEL_DISABLE_THRESHOLD = 20;
-  var anchor = tags.length ? tags[0].label.getFinalSettings('anchor') : null;
+  var anchor = tags.length ?
+    tags[0].label.getFinalSettings('anchor').split('-')[0] :
+    null;
+
   for (var i = 0; i < tags.length; i++) {
-    const tag = tags[i];
     var previousTag = i > 0 ? tags[i - 1] : null;
     var currentTag = tags[i];
     var nextTag = (i < (tags.length - 1)) ? tags[i + 1] : null;
 
-    if (nextTag) {
-      var currentTagLabelBounds = currentTag.label.getTextElement().getBounds();
-      /*    \/ - positive delta, they do not intersect.
-              ________
-      ====   |
-             `````````
-                \/ - negative delta, they intersect.
-              ________
-      =======|====
-             `````````
-       ________ \/ - negative delta, they do not intersect (two close to each other milestones and label offset).
-      |       |    =====
-      `````````
-       */
-      var currentLabelNextTagDelta = nextTag.bounds.getLeft() - currentTagLabelBounds.getRight();
+    anchor = currentTag.label.getFinalSettings('anchor').split('-')[0];
 
-      var areCurrentAndNextIntersecting = currentLabelNextTagDelta < 0;
+    this.cropLabelsWithAnyAnchor_(previousTag, currentTag, nextTag);
 
-      if (areCurrentAndNextIntersecting) {
-        var newWidth = currentTagLabelBounds.width + currentLabelNextTagDelta;
-        if (newWidth >= LABEL_DISABLE_THRESHOLD) {
-          currentTag.label.width(currentTagLabelBounds.width + currentLabelNextTagDelta);
-          currentTag.label.height(currentTag.label.bounds_.height);
-        } else {
-          currentTag.label.enabled(false);
-        }
+    switch(anchor) {
+      case 'left': {
+        this.cropLabelsWithAnchorLeft_(previousTag, currentTag, nextTag);
+        break;
       }
+      case 'right': {
+        this.cropLabelsWithAnchorRight_(previousTag, currentTag, nextTag);
+        break;
+      }
+      case 'center': {
+        this.cropLabelsWithAnchorCenter_(previousTag, currentTag, nextTag);
+        break;
+      }
+      default:
+        break;
     }
 
-    console.log('Processing tag ' + i, tag);
+    // if (nextTag) {
+    //   var currentTagLabelBounds = currentTag.label.getTextElement().getBounds();
+    //   /*    \/ - positive delta, they do not intersect.
+    //           ________
+    //   ====   |
+    //          `````````
+    //             \/ - negative delta, they intersect.
+    //           ________
+    //   =======|====
+    //          `````````
+    //    ________ \/ - negative delta, they do not intersect (two close to each other milestones and label offset).
+    //   |       |    =====
+    //   `````````
+    //    */
+    //   var currentLabelNextTagDelta = nextTag.bounds.getLeft() - currentTagLabelBounds.getRight();
+    //
+    //   var areCurrentAndNextIntersecting = currentLabelNextTagDelta < 0;
+    //
+    //   if (areCurrentAndNextIntersecting) {
+    //     var newWidth = currentTagLabelBounds.width + currentLabelNextTagDelta;
+    //     if (newWidth >= LABEL_DISABLE_THRESHOLD) {
+    //       currentTag.label.width(currentTagLabelBounds.width + currentLabelNextTagDelta);
+    //       currentTag.label.height(currentTag.label.bounds_.height);
+    //     } else {
+    //       currentTag.label.enabled(false);
+    //     }
+    //   }
+    // }
   }
 };
 
