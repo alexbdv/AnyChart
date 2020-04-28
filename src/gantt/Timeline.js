@@ -5825,7 +5825,9 @@ anychart.ganttModule.TimeLine.prototype.getPreviewMilestonesTags_ = function(dep
       (depth <= depthOption);
 
   if (depthMatches) {
-    if (anychart.ganttModule.BaseGrid.isProjectMilestone(item)) {
+    if (anychart.ganttModule.BaseGrid.isProjectMilestone ?
+        anychart.ganttModule.BaseGrid.isProjectMilestone(item) :
+        anychart.ganttModule.BaseGrid.isMilestone(item)) {
       var tag = this.getTagByItemAndElement(item, this.milestones().preview(), row);
       var label = goog.isDefAndNotNull(tag) ? tag.label : void 0;
       if (goog.isDef(label) && label.enabled()) {
@@ -6025,8 +6027,11 @@ anychart.ganttModule.TimeLine.prototype.getItemTag_ = function(tagsData, item) {
 
 anychart.ganttModule.TimeLine.prototype.cropPeriodLabels_ = function(item) {
   // var tagsData = this.periods().shapeManager.getTagsData();
-  var tagsData = { ...this.periods().shapeManager.getTagsData(), ...this.milestones().shapeManager.getTagsData() };
-  this.milestones().shapeManager.getTagsData();
+  var tagsData = {
+    ...this.periods().shapeManager.getTagsData(),
+    ...(this.milestones().shapeManager ? this.milestones().shapeManager.getTagsData() : {})
+  };
+  // this.milestones().shapeManager.getTagsData();
 
   var periods = item.get('periods');
 
@@ -6118,6 +6123,7 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(pr
 
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
   var LABEL_DISABLE_THRESHOLD = 20;
+  var anchor = tags.length ? tags[0].label.getFinalSettings('anchor') : null;
   for (var i = 0; i < tags.length; i++) {
     const tag = tags[i];
     var previousTag = i > 0 ? tags[i - 1] : null;
@@ -6125,7 +6131,7 @@ anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
     var nextTag = (i < (tags.length - 1)) ? tags[i + 1] : null;
 
     if (nextTag) {
-      var currentTagLabelBounds = currentTag.label.bounds_;
+      var currentTagLabelBounds = currentTag.label.getTextElement().getBounds();
       /*    \/ - positive delta, they do not intersect.
               ________
       ====   |
@@ -6188,7 +6194,10 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = functi
 };
 
 anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function(item) {
-  var tagsData = { ...this.periods().shapeManager.getTagsData(), ...this.milestones().shapeManager.getTagsData() };
+  var tagsData = {
+    ...this.periods().shapeManager.getTagsData(),
+    ...(this.milestones().shapeManager ? this.milestones().shapeManager.getTagsData() : {})
+  };
 
   var periodsTags = [];
   for (var tagKey in tagsData) {
