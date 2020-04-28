@@ -6153,19 +6153,25 @@ anychart.ganttModule.TimeLine.prototype.getItemTag_ = function(tagsData, item) {
 };
 
 anychart.ganttModule.TimeLine.prototype.cropPeriodLabels_ = function(item) {
-  // var tagsData = this.periods().shapeManager.getTagsData();
-  var tagsData = {
-    ...this.periods().shapeManager.getTagsData(),
-    ...(this.milestones().shapeManager ? this.milestones().shapeManager.getTagsData() : {})
-  };
-  // this.milestones().shapeManager.getTagsData();
+  var periodsTagsData = this.periods().shapeManager.getTagsData();
+  var milestonesTagsData = this.milestones().shapeManager.getTagsData();
 
   var periods = item.get('periods');
 
   var periodsTags = [];
-  for (var tagKey in tagsData) {
-    if (tagsData.hasOwnProperty(tagKey)) {
-      var tag = tagsData[tagKey];
+
+  for (var tagKey in periodsTagsData) {
+    if (periodsTagsData.hasOwnProperty(tagKey)) {
+      var tag = periodsTagsData[tagKey];
+      if (tag.item === item) {
+        periodsTags.push(tag);
+      }
+    }
+  }
+
+  for (var tagKey in milestonesTagsData) {
+    if (milestonesTagsData.hasOwnProperty(tagKey)) {
+      var tag = milestonesTagsData[tagKey];
       if (tag.item === item) {
         periodsTags.push(tag);
       }
@@ -6219,9 +6225,9 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
   return;
 
 
-  var tags = this.getTagsFromItemRow_(item);
+  // var tags = this.getTagsFromItemRow_(item);
   //crops label on tag, by checking previous/next label and tag itself
-  this.cropTagsLabels_(tags);
+  // this.cropTagsLabels_(tags);
 
   // for (let i = 0; i < tags.length; i++) {
   //   this.cropTagLabel(i, tags);
@@ -6254,6 +6260,12 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorLeft_ = function(pre
         break;
       }
       case 'right': {
+        var distanceToNextTagElement = next.bounds.getLeft() - cur.bounds.getRight();
+        var tagsIntersect = distanceToNextTagElement <= 0;
+
+        if (tagsIntersect) {
+          cur.label.enabled(false);
+        }
         break;
       }
       case 'center': {
@@ -6269,11 +6281,63 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorLeft_ = function(pre
 };
 
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(prev, cur, next) {
+  if (prev || next) {
+    var curTagLabelBounds = cur.label.getTextElement().getBounds();
+    var deltaToPrevTag = prev ? cur.bounds.getLeft() - prev.bounds.getRight() : null;
+    var deltaToNextTag = next ? next.bounds.getRight() - cur.bounds.getRight() : null;
 
+    deltaToPrevTag = goog.isNull(deltaToPrevTag) ? deltaToNextTag : deltaToPrevTag;
+    deltaToNextTag = goog.isNull(deltaToNextTag) ? deltaToPrevTag : deltaToNextTag;
+
+    if (deltaToPrevTag <= 0 || deltaToNextTag <= 0) {
+      cur.label.enabled(false);
+    } else {
+      /*
+        This is a really simple attempt at cropping center anchored labels,
+        which does not take position setting into account.
+       */
+      var minDelta = Math.min(deltaToPrevTag, deltaToNextTag) + (cur.bounds.width / 2);
+      if (minDelta >= (20 / 2)) {
+        cur.label.width(minDelta * 2);
+        cur.label.height(curTagLabelBounds.height);
+      } else {
+        cur.label.enabled(false);
+      }
+    }
+  }
 };
 
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(prev, cur, next) {
   if (prev) {
+    var previousTagAnchor = prev.label.getFinalSettings('anchor').split('-')[0];
+    var curTagLabelBounds = cur.label.getTextElement().getBounds();
+
+    switch (previousTagAnchor) {
+      case 'right': {
+        // delta < 0 means that label intersects previous tag.
+        var delta = curTagLabelBounds.getLeft() - prev.bounds.getRight();
+        var newWidth = curTagLabelBounds.width + delta;
+
+        if (newWidth >= 20) {
+          if (newWidth < curTagLabelBounds.width) {
+            cur.label.width(newWidth);
+            cur.label.height(curTagLabelBounds.height);
+          }
+        } else {
+          cur.label.enabled(false);
+        }
+        break;
+      }
+      case 'left': {
+        break;
+      }
+      case 'center': {
+
+      }
+      default: {
+        break;
+      }
+    }
 
   }
 };
@@ -6283,21 +6347,16 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
 };
 
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
-  var LABEL_DISABLE_THRESHOLD = 20;
-  var anchor = tags.length ?
-    tags[0].label.getFinalSettings('anchor').split('-')[0] :
-    null;
-
   for (var i = 0; i < tags.length; i++) {
     var previousTag = i > 0 ? tags[i - 1] : null;
     var currentTag = tags[i];
     var nextTag = (i < (tags.length - 1)) ? tags[i + 1] : null;
 
-    anchor = currentTag.label.getFinalSettings('anchor').split('-')[0];
+    var anchor = currentTag.label.getFinalSettings('anchor').split('-')[0];
 
     this.cropLabelsWithAnyAnchor_(previousTag, currentTag, nextTag);
 
-    switch(anchor) {
+    switch (anchor) {
       case 'left': {
         this.cropLabelsWithAnchorLeft_(previousTag, currentTag, nextTag);
         break;
@@ -6376,17 +6435,25 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = functi
 };
 
 anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function(item) {
-  var tagsData = {
-    ...this.periods().shapeManager.getTagsData(),
-    ...(this.milestones().shapeManager ? this.milestones().shapeManager.getTagsData() : {})
-  };
+  var periodsTagsData = this.periods().shapeManager.getTagsData();
+  var milestonesTagsData = this.milestones().shapeManager.getTagsData();
 
   var periodsTags = [];
-  for (var tagKey in tagsData) {
-    if (tagsData.hasOwnProperty(tagKey)) {
-      var tag = tagsData[tagKey];
+  var tagKey, tag;
+
+  for (tagKey in periodsTagsData) {
+    if (periodsTagsData.hasOwnProperty(tagKey)) {
+      tag = periodsTagsData[tagKey];
       if (tag.item === item) {
-        // periodsTags.push(tag);
+        goog.array.binaryInsert(periodsTags, tag, anychart.ganttModule.TimeLine.tagsBinaryInsertCallback);
+      }
+    }
+  }
+
+  for (tagKey in milestonesTagsData) {
+    if (milestonesTagsData.hasOwnProperty(tagKey)) {
+      tag = milestonesTagsData[tagKey];
+      if (tag.item === item) {
         goog.array.binaryInsert(periodsTags, tag, anychart.ganttModule.TimeLine.tagsBinaryInsertCallback);
       }
     }
@@ -6508,6 +6575,7 @@ anychart.ganttModule.TimeLine.prototype.drawLabels_ = function() {
 
   // If elements are not initialised - most probably chart was not drawn.
   if (this.getOption('cropLabels') && this.elements_) {
+    console.log('Labels crop called');
     this.cropElementsLabels_();
   }
 
