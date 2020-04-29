@@ -6412,10 +6412,6 @@ anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next)
   var nextTagLabelBounds = next.label.getTextElement().getBounds();
   var curTagLabelBounds = next.label.getTextElement().getBounds();
 
-  // if (delta < 0) {
-  //   return next.bounds.getLeft();
-  // }
-
   var halfDeltaX = cur.bounds.getRight() + delta / 2;
 
   /*
@@ -6434,7 +6430,7 @@ anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next)
   }
 
   return next.bounds.getLeft();
-}
+};
 
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev, cur, next) {
   var curTagLabelBounds = cur.label.getTextElement().getBounds();
@@ -6481,10 +6477,6 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
   } else if (newWidth < 20) {
     cur.label.enabled(false);
   }
-
-  // if (rightSideCropped || leftSideCropped) {
-  //   var nextLabel
-  // }
 };
 
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
