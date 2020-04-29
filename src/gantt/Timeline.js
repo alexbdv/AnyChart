@@ -6280,9 +6280,29 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorLeft_ = function(pre
   }
 };
 
+/**
+ * Returns rect, which includes
+ * @param {anychart.ganttModule.TimeLine.Tag} tag
+ * @private
+ */
+anychart.ganttModule.TimeLine.prototype.getFullTagBounds_ = function(tag) {
+  var bounds = tag.bounds;
+  var labelBounds = tag.label.getTextElement().getBounds();
+
+  var x = Math.min(bounds.getLeft(), labelBounds.getLeft());
+  var right = Math.max(bounds.getRight(), labelBounds.getRight());
+  return new goog.math.Rect(
+    x,
+    bounds.top,
+    right - x,
+    bounds.height
+  );
+};
+
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(prev, cur, next) {
   if (prev || next) {
     var curTagLabelBounds = cur.label.getTextElement().getBounds();
+    var nextTagLabelBounds = next ? next.label.getTextElement().getBounds() : null;
     var position = cur.label.getFinalSettings('position').split('-')[0];
     var toNextFixUp, toPrevFixUp;
 
@@ -6309,6 +6329,27 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(p
     var deltaToPrevTag = prev ? cur.bounds.getLeft() - prev.bounds.getRight() + toPrevFixUp : null;
     var deltaToNextTag = next ? next.bounds.getRight() - cur.bounds.getRight() + toNextFixUp : null;
 
+    var deltaToNextTagWithoutFixUp = next ? next.bounds.getRight() - cur.bounds.getRight() : null;
+
+    //region Decide how much space we have for current label
+    var fullPrevBounds = prev ? this.getFullTagBounds_(prev) : null;
+    var fullNextBounds = next ? this.getFullTagBounds_(next) : null;
+    var nextLabelSticksOut = next ? nextTagLabelBounds.getLeft() < next.bounds.getLeft() : false;
+    var nextLabelSticksOutAmount = next ? next.bounds.getLeft() - nextTagLabelBounds.getLeft() : null;
+    var deltaToPrevTagWithFullBounds = fullPrevBounds ? cur.bounds.getLeft() - fullPrevBounds.getRight() + toPrevFixUp : null;
+
+    if (nextLabelSticksOut) {
+      if (nextLabelSticksOutAmount >= (deltaToNextTagWithoutFixUp / 2)) {
+        deltaToNextTag = (deltaToNextTagWithoutFixUp / 2) + toNextFixUp;
+      } else {
+        deltaToNextTag -= nextLabelSticksOutAmount;
+      }
+    }
+
+    if (fullPrevBounds) {
+      deltaToPrevTag = cur.bounds.getLeft() - fullPrevBounds.getRight() + toPrevFixUp;
+    }
+    //endregion
 
     deltaToPrevTag = goog.isNull(deltaToPrevTag) ? deltaToNextTag : deltaToPrevTag;
     deltaToNextTag = goog.isNull(deltaToNextTag) ? deltaToPrevTag : deltaToNextTag;
@@ -6366,8 +6407,84 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(pr
   }
 };
 
-anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev, cur, next) {
+anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next) {
+  var delta = next.bounds.getLeft() - cur.bounds.getRight();
+  var nextTagLabelBounds = next.label.getTextElement().getBounds();
+  var curTagLabelBounds = next.label.getTextElement().getBounds();
 
+  // if (delta < 0) {
+  //   return next.bounds.getLeft();
+  // }
+
+  var halfDeltaX = cur.bounds.getRight() + delta / 2;
+
+  /*
+    As simple as that:
+      1) If next label righter than next tag itself, right restraint is left side of the tag.
+      2) If next label is on the left side, but no further than middle between current tag right and next tag left, label left side is restraint.
+      3) If next label is on the left and further, than the middle line, use middle line as restraint.
+   */
+
+  if (nextTagLabelBounds.getLeft() < next.bounds.getLeft() && delta > 0) {
+    if (nextTagLabelBounds.getLeft() <= halfDeltaX) {
+      return halfDeltaX;
+    } else {
+      return nextTagLabelBounds.getLeft();
+    }
+  }
+
+  return next.bounds.getLeft();
+}
+
+anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev, cur, next) {
+  var curTagLabelBounds = cur.label.getTextElement().getBounds();
+  var hardRightRestraint = next ? this.getRightRestraint_(cur, next) : null;
+
+  var hardLeftRestraint = prev ?
+    Math.max(
+      prev.bounds.getRight(),
+      prev.label.enabled() ? prev.label.bounds_.getRight() : -Infinity
+    ) :
+    null;
+
+  var curTagLabelAnchor = cur.label.getFinalSettings('anchor').split('-')[0];
+  var curTagLabelPosition = cur.label.getFinalSettings('position').split('-')[0];
+
+  var rightSideCropped = !goog.isNull(hardRightRestraint) ? hardRightRestraint < curTagLabelBounds.getRight() : false;
+  var curLabelRight = rightSideCropped ?
+    hardRightRestraint :
+    curTagLabelBounds.getRight();
+
+  var leftSideCropped = !goog.isNull(hardLeftRestraint) ? hardLeftRestraint > curTagLabelBounds.getLeft() : false;
+  var curLabelLeft = leftSideCropped ?
+    hardLeftRestraint :
+    curTagLabelBounds.getLeft();
+
+  var newWidth = curLabelRight - curLabelLeft;
+  if (newWidth >= 20 && newWidth < curTagLabelBounds.width && curTagLabelAnchor === 'center') {
+    var anchorPointX;
+    if (curTagLabelPosition === 'center') {
+      anchorPointX = cur.bounds.getLeft() + cur.bounds.width / 2;
+    }
+    if (curTagLabelPosition === 'right') {
+      anchorPointX = cur.bounds.getRight();
+    }
+    if (curTagLabelPosition === 'left') {
+      anchorPointX = cur.bounds.getLeft();
+    }
+    newWidth = Math.min(anchorPointX - hardLeftRestraint, hardRightRestraint - anchorPointX) * 2;
+  }
+
+  if (newWidth >= 20 && newWidth < curTagLabelBounds.width) {
+    cur.label.width(newWidth);
+    cur.label.height(curTagLabelBounds.height);
+  } else if (newWidth < 20) {
+    cur.label.enabled(false);
+  }
+
+  // if (rightSideCropped || leftSideCropped) {
+  //   var nextLabel
+  // }
 };
 
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
@@ -6380,22 +6497,22 @@ anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
 
     this.cropLabelsWithAnyAnchor_(previousTag, currentTag, nextTag);
 
-    switch (anchor) {
-      case 'left': {
-        this.cropLabelsWithAnchorLeft_(previousTag, currentTag, nextTag);
-        break;
-      }
-      case 'right': {
-        this.cropLabelsWithAnchorRight_(previousTag, currentTag, nextTag);
-        break;
-      }
-      case 'center': {
-        this.cropLabelsWithAnchorCenter_(previousTag, currentTag, nextTag);
-        break;
-      }
-      default:
-        break;
-    }
+    // switch (anchor) {
+    //   case 'left': {
+    //     this.cropLabelsWithAnchorLeft_(previousTag, currentTag, nextTag);
+    //     break;
+    //   }
+    //   case 'right': {
+    //     this.cropLabelsWithAnchorRight_(previousTag, currentTag, nextTag);
+    //     break;
+    //   }
+    //   case 'center': {
+    //     this.cropLabelsWithAnchorCenter_(previousTag, currentTag, nextTag);
+    //     break;
+    //   }
+    //   default:
+    //     break;
+    // }
 
     // if (nextTag) {
     //   var currentTagLabelBounds = currentTag.label.getTextElement().getBounds();
