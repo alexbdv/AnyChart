@@ -6283,8 +6283,32 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorLeft_ = function(pre
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(prev, cur, next) {
   if (prev || next) {
     var curTagLabelBounds = cur.label.getTextElement().getBounds();
-    var deltaToPrevTag = prev ? cur.bounds.getLeft() - prev.bounds.getRight() : null;
-    var deltaToNextTag = next ? next.bounds.getRight() - cur.bounds.getRight() : null;
+    var position = cur.label.getFinalSettings('position').split('-')[0];
+    var toNextFixUp, toPrevFixUp;
+
+    /*
+      Simple fix up for different label positions, needs more testing.
+     */
+    switch (position) {
+      case 'center': {
+        toNextFixUp = toPrevFixUp = cur.bounds.width / 2;
+        break;
+      }
+      case 'right': {
+        toNextFixUp = 0;
+        toPrevFixUp = cur.bounds.width;
+        break;
+      }
+      case 'left': {
+        toNextFixUp = cur.bounds.width;
+        toPrevFixUp = 0;
+        break;
+      }
+    }
+
+    var deltaToPrevTag = prev ? cur.bounds.getLeft() - prev.bounds.getRight() + toPrevFixUp : null;
+    var deltaToNextTag = next ? next.bounds.getRight() - cur.bounds.getRight() + toNextFixUp : null;
+
 
     deltaToPrevTag = goog.isNull(deltaToPrevTag) ? deltaToNextTag : deltaToPrevTag;
     deltaToNextTag = goog.isNull(deltaToNextTag) ? deltaToPrevTag : deltaToNextTag;
@@ -6292,14 +6316,14 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(p
     if (deltaToPrevTag <= 0 || deltaToNextTag <= 0) {
       cur.label.enabled(false);
     } else {
-      /*
-        This is a really simple attempt at cropping center anchored labels,
-        which does not take position setting into account.
-       */
-      var minDelta = Math.min(deltaToPrevTag, deltaToNextTag) + (cur.bounds.width / 2);
-      if (minDelta >= (20 / 2)) {
-        cur.label.width(minDelta * 2);
-        cur.label.height(curTagLabelBounds.height);
+      var minDelta = Math.min(deltaToPrevTag, deltaToNextTag);
+      var newWidth = minDelta * 2;
+
+      if (newWidth >= 20) {
+        if (newWidth < curTagLabelBounds.width) {
+          cur.label.width(minDelta * 2);
+          cur.label.height(curTagLabelBounds.height);
+        }
       } else {
         cur.label.enabled(false);
       }
