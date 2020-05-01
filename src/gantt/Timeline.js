@@ -6201,6 +6201,10 @@ anychart.ganttModule.TimeLine.prototype.cropPeriodLabels_ = function(item) {
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
+  /*
+    TODO:
+      1) seems that there are problems with offsetX, which is not taken into account
+   */
   // Returns all uncollapsed items.
   var visibleItems = this.getVisibleItems();
 
@@ -6407,7 +6411,18 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(pr
   }
 };
 
+/**
+ *
+ * @param {anychart.ganttModule.TimeLine.Tag} cur
+ * @param {anychart.ganttModule.TimeLine.Tag} next
+ * @returns {number}
+ * @private
+ */
 anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next) {
+  if (!next) {
+    return +Infinity;
+  }
+
   var delta = next.bounds.getLeft() - cur.bounds.getRight();
   var nextTagLabelBounds = this.getTagLabelBounds_(next.label);// next.label.getTextElement().getBounds();
 
@@ -6431,12 +6446,13 @@ anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next)
   return next.bounds.getLeft();
 };
 
-anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev, cur, next) {
-  var curTagLabelBounds = this.getTagLabelBounds_(cur.label);
-
-  var hardRightRestraint = next ? this.getRightRestraint_(cur, next) : null;
-
-  var hardLeftRestraint = prev ?
+/**
+ *
+ * @param {anychart.ganttModule.TimeLine.Tag} prev
+ * @private
+ */
+anychart.ganttModule.TimeLine.prototype.getLeftRestraint_ = function(prev) {
+  return prev ?
     Math.max(
       prev.bounds.getRight(),
       prev.label.enabled() ?
@@ -6445,20 +6461,24 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
         prev.label.draw() && this.getTagLabelBounds_(prev.label).getRight() :
         -Infinity
     ) :
-    null;
+    -Infinity;
+};
+
+anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev, cur, next) {
+  var curTagLabelBounds = this.getTagLabelBounds_(cur.label);
+
+  // Get left and right bounds of available space for label.
+  var hardRightRestraint = this.getRightRestraint_(cur, next);
+  var hardLeftRestraint = this.getLeftRestraint_(prev);
 
   var curTagLabelAnchor = cur.label.getFinalSettings('anchor').split('-')[0];
   var curTagLabelPosition = cur.label.getFinalSettings('position').split('-')[0];
 
-  var rightSideCropped = !goog.isNull(hardRightRestraint) ? hardRightRestraint < curTagLabelBounds.getRight() : false;
-  var curLabelRight = rightSideCropped ?
-    hardRightRestraint :
-    curTagLabelBounds.getRight();
+  var rightSideCropped = hardRightRestraint < curTagLabelBounds.getRight();
+  var curLabelRight = rightSideCropped ? hardRightRestraint : curTagLabelBounds.getRight();
 
-  var leftSideCropped = !goog.isNull(hardLeftRestraint) ? hardLeftRestraint > curTagLabelBounds.getLeft() : false;
-  var curLabelLeft = leftSideCropped ?
-    hardLeftRestraint :
-    curTagLabelBounds.getLeft();
+  var leftSideCropped = hardLeftRestraint > curTagLabelBounds.getLeft();
+  var curLabelLeft = leftSideCropped ? hardLeftRestraint : curTagLabelBounds.getLeft();
 
   var newWidth = curLabelRight - curLabelLeft;
   if (newWidth >= 20 && newWidth < curTagLabelBounds.width && curTagLabelAnchor === 'center') {
