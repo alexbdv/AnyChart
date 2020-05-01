@@ -6409,8 +6409,7 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorRight_ = function(pr
 
 anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next) {
   var delta = next.bounds.getLeft() - cur.bounds.getRight();
-  var nextTagLabelBounds = next.label.getTextElement().getBounds();
-  var curTagLabelBounds = next.label.getTextElement().getBounds();
+  var nextTagLabelBounds = this.getTagLabelBounds_(next.label);// next.label.getTextElement().getBounds();
 
   var halfDeltaX = cur.bounds.getRight() + delta / 2;
 
@@ -6433,13 +6432,14 @@ anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next)
 };
 
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev, cur, next) {
-  var curTagLabelBounds = cur.label.getTextElement().getBounds();
+  var curTagLabelBounds = this.getTagLabelBounds_(cur.label);
+
   var hardRightRestraint = next ? this.getRightRestraint_(cur, next) : null;
 
   var hardLeftRestraint = prev ?
     Math.max(
       prev.bounds.getRight(),
-      prev.label.enabled() ? prev.label.bounds_.getRight() : -Infinity
+      prev.label.enabled() ? this.getTagLabelBounds_(prev.label).getRight() : -Infinity
     ) :
     null;
 
@@ -6468,7 +6468,7 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
     if (curTagLabelPosition === 'left') {
       anchorPointX = cur.bounds.getLeft();
     }
-    newWidth = Math.min(anchorPointX - hardLeftRestraint, hardRightRestraint - anchorPointX) * 2;
+    newWidth = Math.min(anchorPointX - curLabelLeft, curLabelRight - anchorPointX) * 2;
   }
 
   if (newWidth >= 20 && newWidth < curTagLabelBounds.width) {
@@ -6477,6 +6477,30 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
   } else if (newWidth < 20) {
     cur.label.enabled(false);
   }
+};
+
+/**
+ * Returns tag label with widened bounds if needed.
+ *
+ * @param {anychart.core.ui.LabelsFactory.Label} label
+ * @returns {anychart.math.Rect}
+ * @private
+ */
+anychart.ganttModule.TimeLine.prototype.getTagLabelBounds_ = function(label) {
+  var factory = label.getFactory();
+
+  var textBounds = label.getTextElement().getBounds();
+  if (factory.background().enabled()) {
+    var padding = label.getFinalSettings('padding');
+    var paddingObject = {
+      top: padding[0],
+      right: padding[1],
+      bottom: padding[2],
+      left: padding[3]
+    };
+    return anychart.core.utils.Padding.widenBounds(textBounds, paddingObject);
+  }
+  return textBounds;
 };
 
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
