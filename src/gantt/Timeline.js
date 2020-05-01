@@ -6029,6 +6029,7 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
   /*
     TODO:
       1) seems that there are problems with offsetX, which is not taken into account
+      2) take padding into account
    */
   // Returns all uncollapsed items.
   var visibleItems = this.getVisibleItems();
