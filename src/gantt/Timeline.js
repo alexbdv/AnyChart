@@ -6439,7 +6439,11 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
   var hardLeftRestraint = prev ?
     Math.max(
       prev.bounds.getRight(),
-      prev.label.enabled() ? this.getTagLabelBounds_(prev.label).getRight() : -Infinity
+      prev.label.enabled() ?
+        /* Draw is needed to force update changed bounds, maybe better to incorporate
+        in getTagLabelBounds_ logic to modify bounds based on label.width() (?) */
+        prev.label.draw() && this.getTagLabelBounds_(prev.label).getRight() :
+        -Infinity
     ) :
     null;
 
