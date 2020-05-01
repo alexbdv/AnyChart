@@ -6241,6 +6241,25 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
 //region Test new flow
 
 /**
+ * Returns rect, which includes
+ * @param {anychart.ganttModule.TimeLine.Tag} tag
+ * @private
+ */
+anychart.ganttModule.TimeLine.prototype.getFullTagBounds_ = function(tag) {
+  var bounds = tag.bounds;
+  var labelBounds = tag.label.getTextElement().getBounds();
+
+  var x = Math.min(bounds.getLeft(), labelBounds.getLeft());
+  var right = Math.max(bounds.getRight(), labelBounds.getRight());
+  return new goog.math.Rect(
+    x,
+    bounds.top,
+    right - x,
+    bounds.height
+  );
+};
+
+/**
  * Crops labels for lanchor left.
  *
  * @param tags
@@ -6282,25 +6301,6 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorLeft_ = function(pre
     //
     // }
   }
-};
-
-/**
- * Returns rect, which includes
- * @param {anychart.ganttModule.TimeLine.Tag} tag
- * @private
- */
-anychart.ganttModule.TimeLine.prototype.getFullTagBounds_ = function(tag) {
-  var bounds = tag.bounds;
-  var labelBounds = tag.label.getTextElement().getBounds();
-
-  var x = Math.min(bounds.getLeft(), labelBounds.getLeft());
-  var right = Math.max(bounds.getRight(), labelBounds.getRight());
-  return new goog.math.Rect(
-    x,
-    bounds.top,
-    right - x,
-    bounds.height
-  );
 };
 
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnchorCenter_ = function(prev, cur, next) {
