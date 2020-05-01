@@ -6043,28 +6043,11 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
 
     var tags = this.getTagsFromItemRow_(item);
     this.cropTagsLabels_(tags);
-
-    // if (anychart.ganttModule.BaseGrid.isGroupingTask(item) || anychart.ganttModule.BaseGrid.isBaseline(item)) { // Why baseline?
-    //   this.checkPreviewMilestonesOverlapsOnRow_(item);
-    // } else if (anychart.ganttModule.BaseGrid.isPeriod(item)) {
-    //   this.cropPeriodLabels_(item);
-    // }
   }
-
-  return;
-
-
-  // var tags = this.getTagsFromItemRow_(item);
-  //crops label on tag, by checking previous/next label and tag itself
-  // this.cropTagsLabels_(tags);
-
-  // for (let i = 0; i < tags.length; i++) {
-  //   this.cropTagLabel(i, tags);
-  // }
 };
 
-//region Test new flow
 
+//region Test new flow
 /**
  * Returns rect, which includes
  * @param {anychart.ganttModule.TimeLine.Tag} tag
@@ -6083,6 +6066,7 @@ anychart.ganttModule.TimeLine.prototype.getFullTagBounds_ = function(tag) {
     bounds.height
   );
 };
+
 
 /**
  *
@@ -6119,6 +6103,7 @@ anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next)
   return next.bounds.getLeft();
 };
 
+
 /**
  *
  * @param {anychart.ganttModule.TimeLine.Tag} prev
@@ -6137,6 +6122,10 @@ anychart.ganttModule.TimeLine.prototype.getLeftRestraint_ = function(prev) {
     -Infinity;
 };
 
+
+/**
+ * 
+ */
 anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev, cur, next) {
   var curTagLabelBounds = this.getTagLabelBounds_(cur.label);
 
@@ -6176,6 +6165,7 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
   }
 };
 
+
 /**
  * Returns tag label with widened bounds if needed.
  *
@@ -6200,64 +6190,24 @@ anychart.ganttModule.TimeLine.prototype.getTagLabelBounds_ = function(label) {
   return textBounds;
 };
 
+
+/**
+ * 
+ */
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
   for (var i = 0; i < tags.length; i++) {
     var previousTag = i > 0 ? tags[i - 1] : null;
     var currentTag = tags[i];
     var nextTag = (i < (tags.length - 1)) ? tags[i + 1] : null;
 
-    var anchor = currentTag.label.getFinalSettings('anchor').split('-')[0];
-
     this.cropLabelsWithAnyAnchor_(previousTag, currentTag, nextTag);
-
-    // switch (anchor) {
-    //   case 'left': {
-    //     this.cropLabelsWithAnchorLeft_(previousTag, currentTag, nextTag);
-    //     break;
-    //   }
-    //   case 'right': {
-    //     this.cropLabelsWithAnchorRight_(previousTag, currentTag, nextTag);
-    //     break;
-    //   }
-    //   case 'center': {
-    //     this.cropLabelsWithAnchorCenter_(previousTag, currentTag, nextTag);
-    //     break;
-    //   }
-    //   default:
-    //     break;
-    // }
-
-    // if (nextTag) {
-    //   var currentTagLabelBounds = currentTag.label.getTextElement().getBounds();
-    //   /*    \/ - positive delta, they do not intersect.
-    //           ________
-    //   ====   |
-    //          `````````
-    //             \/ - negative delta, they intersect.
-    //           ________
-    //   =======|====
-    //          `````````
-    //    ________ \/ - negative delta, they do not intersect (two close to each other milestones and label offset).
-    //   |       |    =====
-    //   `````````
-    //    */
-    //   var currentLabelNextTagDelta = nextTag.bounds.getLeft() - currentTagLabelBounds.getRight();
-    //
-    //   var areCurrentAndNextIntersecting = currentLabelNextTagDelta < 0;
-    //
-    //   if (areCurrentAndNextIntersecting) {
-    //     var newWidth = currentTagLabelBounds.width + currentLabelNextTagDelta;
-    //     if (newWidth >= LABEL_DISABLE_THRESHOLD) {
-    //       currentTag.label.width(currentTagLabelBounds.width + currentLabelNextTagDelta);
-    //       currentTag.label.height(currentTag.label.bounds_.height);
-    //     } else {
-    //       currentTag.label.enabled(false);
-    //     }
-    //   }
-    // }
   }
 };
 
+
+/**
+ * 
+ */
 anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = function(item) {
   var tagsData;
   if (anychart.ganttModule.BaseGrid.isGroupingTask(item)) {
@@ -6316,6 +6266,10 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function
   return periodsTags;
 };
 
+
+/**
+ * 
+ */
 anychart.ganttModule.TimeLine.prototype.getTagsFromItemRow_ = function(item) {
   if (anychart.ganttModule.BaseGrid.isPeriod(item)) {
     return this.getTagsFromResourcePeriodRow_(item);
