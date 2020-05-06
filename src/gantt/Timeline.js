@@ -6058,7 +6058,7 @@ anychart.ganttModule.TimeLine.prototype.getFullTagBounds_ = function(tag) {
 /**
  *
  * @param {anychart.ganttModule.TimeLine.Tag} cur
- * @param {anychart.ganttModule.TimeLine.Tag} next
+ * @param {anychart.ganttModule.TimeLine.Tag?} next
  * @returns {number}
  * @private
  */
@@ -6094,7 +6094,7 @@ anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next)
 /**
  * Returns rightmost x value of tag, which is either label right boundary,
  * or tag itself right boundary if label is disabled.
- * @param {anychart.ganttModule.TimeLine.Tag} prev - Previous tag.
+ * @param {anychart.ganttModule.TimeLine.Tag?} prev - Previous tag.
  * @returns {number}
  * @private
  */
@@ -6112,7 +6112,7 @@ anychart.ganttModule.TimeLine.prototype.getLeftRestraint_ = function(prev) {
 
 
 /**
- * 
+ *
  * @param {anychart.core.ui.LabelsFactory.Label} label
  * @param {number} width
  * @returns {number}
@@ -6132,9 +6132,9 @@ anychart.ganttModule.TimeLine.prototype.getLabelWidthWithoutPaddings_ = function
 
 /**
  * Crops current tag label, taking previous and next tags and their labels into account.
- * @param {anychart.ganttModule.TimeLine.Tag} prev
- * @param {anychart.ganttModule.TimeLine.Tag} cur
- * @param {anychart.ganttModule.TimeLine.Tag} next
+ * @param {anychart.ganttModule.TimeLine.Tag?} prev
+ * @param {anychart.ganttModule.TimeLine.Tag?} cur
+ * @param {anychart.ganttModule.TimeLine.Tag?} next
  */
 anychart.ganttModule.TimeLine.prototype.cropTagLabel_ = function(prev, cur, next) {
   var curTagLabelBounds = this.getTagLabelBounds_(cur.label);
@@ -6187,7 +6187,7 @@ anychart.ganttModule.TimeLine.prototype.getTagLabelBounds_ = function(label) {
 
   var textBounds = label.getTextElement().getBounds();
   if (backgroundSettings && backgroundSettings.enabled) {
-    var padding = label.getFinalSettings('padding');
+    var padding = /** @type {Object} */(label.getFinalSettings('padding'));
     var widenedBounds = /** @type {anychart.math.Rect} */(anychart.core.utils.Padding.widenBounds(textBounds, padding));
     return widenedBounds;
   }
@@ -6196,8 +6196,9 @@ anychart.ganttModule.TimeLine.prototype.getTagLabelBounds_ = function(label) {
 
 
 /**
- * 
+ *
  * @param {Array.<anychart.ganttModule.TimeLine.Tag>} tags
+ * @private
  */
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
   for (var i = 0; i < tags.length; i++) {
@@ -6211,9 +6212,10 @@ anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
 
 
 /**
- * 
- * @type {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
+ *
+ * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
  * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
+ * @private
  */
 anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = function(item) {
   var tagsData;
@@ -6247,9 +6249,10 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = functi
 
 
 /**
- * 
+ *
  * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
  * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
+ * @private
  */
 anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function(item) {
   var periodsTagsData = this.periods().shapeManager.getTagsData();
@@ -6281,9 +6284,8 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function
 
 
 /**
- * 
  * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
- * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
+ * @returns {Array}
  */
 anychart.ganttModule.TimeLine.prototype.getTagsFromItemRow_ = function(item) {
   if (anychart.ganttModule.BaseGrid.isPeriod(item)) {
