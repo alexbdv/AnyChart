@@ -6003,23 +6003,6 @@ anychart.ganttModule.TimeLine.prototype.applyTagCache = function(tag, cache) {
   }
 };
 
-/**
- * Returns tag, which holds given item.
- * @param {} tagsData
- * @param {} item
- */
-anychart.ganttModule.TimeLine.prototype.getItemTag_ = function(tagsData, item) {
-  for (var tagKey in tagsData) {
-    if (tagsData.hasOwnProperty(tagKey)) {
-      var tag = tagsData[tagKey];
-      if (tag.item === item) {
-        return tag;
-      }
-    }
-  }
-  return null;
-};
-
 
 /**
  * Checks if milestone preview labels overlap and crops
@@ -6051,7 +6034,6 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
 };
 
 
-//region Test new flow
 /**
  * Returns rect, which includes
  * @param {anychart.ganttModule.TimeLine.Tag} tag
@@ -6130,8 +6112,9 @@ anychart.ganttModule.TimeLine.prototype.getLeftRestraint_ = function(prev) {
 
 
 /**
- * @param {} label
- * @param {} width
+ * 
+ * @param {anychart.core.ui.LabelsFactory.Label} label
+ * @param {number} width
  * @returns {number}
  */
 anychart.ganttModule.TimeLine.prototype.getLabelWidthWithoutPaddings_ = function(label, width) {
@@ -6144,14 +6127,14 @@ anychart.ganttModule.TimeLine.prototype.getLabelWidthWithoutPaddings_ = function
   }
 
   return Math.max(0, width - leftAndRightPadding);
-}
+};
 
 
 /**
  * Crops current tag label, taking previous and next tags and their labels into account.
- * @param {} prev
- * @param {} cur
- * @param {} next
+ * @param {anychart.ganttModule.TimeLine.Tag} prev
+ * @param {anychart.ganttModule.TimeLine.Tag} cur
+ * @param {anychart.ganttModule.TimeLine.Tag} next
  */
 anychart.ganttModule.TimeLine.prototype.cropTagLabel_ = function(prev, cur, next) {
   var curTagLabelBounds = this.getTagLabelBounds_(cur.label);
@@ -6195,7 +6178,6 @@ anychart.ganttModule.TimeLine.prototype.cropTagLabel_ = function(prev, cur, next
 
 /**
  * Returns tag label with widened bounds if needed.
- *
  * @param {anychart.core.ui.LabelsFactory.Label} label
  * @returns {anychart.math.Rect}
  * @private
@@ -6215,6 +6197,7 @@ anychart.ganttModule.TimeLine.prototype.getTagLabelBounds_ = function(label) {
 
 /**
  * 
+ * @param {Array.<anychart.ganttModule.TimeLine.Tag>} tags
  */
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
   for (var i = 0; i < tags.length; i++) {
@@ -6228,6 +6211,7 @@ anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
 
 
 /**
+ * 
  * @type {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
  * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
  */
@@ -6263,6 +6247,7 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = functi
 
 
 /**
+ * 
  * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
  * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
  */
@@ -6296,6 +6281,7 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function
 
 
 /**
+ * 
  * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
  * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
  */
@@ -6307,7 +6293,6 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromItemRow_ = function(item) {
   }
   return [];
 };
-//endregion
 
 
 /**
