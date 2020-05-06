@@ -6082,7 +6082,7 @@ anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next)
   }
 
   var delta = next.bounds.getLeft() - cur.bounds.getRight();
-  var nextTagLabelBounds = this.getTagLabelBounds_(next.label);// next.label.getTextElement().getBounds();
+  var nextTagLabelBounds = this.getTagLabelBounds_(next.label);
 
   var halfDeltaX = cur.bounds.getRight() + delta / 2;
 
@@ -6123,6 +6123,19 @@ anychart.ganttModule.TimeLine.prototype.getLeftRestraint_ = function(prev) {
 };
 
 
+anychart.ganttModule.TimeLine.prototype.getLabelWidthWithoutPaddings_ = function(label, width) {
+  var padding = label.getFinalSettings('padding');
+  var background = label.getFinalSettings('background');
+
+  var leftAndRightPadding = 0;
+  if (background && background.enabled) {
+    leftAndRightPadding = (padding.left || 0) + (padding.right || 0);
+  }
+
+  return Math.max(0, width - leftAndRightPadding);
+}
+
+
 /**
  * 
  */
@@ -6140,6 +6153,7 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
   var curLabelLeft = Math.max(hardLeftRestraint, curTagLabelBounds.getLeft());
 
   var newWidth = curLabelRight - curLabelLeft;
+
   if (newWidth >= 20 && newWidth < curTagLabelBounds.width && curTagLabelAnchor === 'center') {
     var anchorPointX;
     if (curTagLabelPosition === 'center') {
@@ -6154,10 +6168,12 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
     newWidth = Math.min(anchorPointX - curLabelLeft, curLabelRight - anchorPointX) * 2;
   }
 
-  if (newWidth >= 20 && newWidth < curTagLabelBounds.width) {
+  var textOnlybounds = this.getLabelWidthWithoutPaddings_(cur.label, newWidth);
+
+  if (textOnlybounds >= 20 && newWidth < curTagLabelBounds.width) {
     cur.label.width(newWidth);
     cur.label.height(curTagLabelBounds.height);
-  } else if (newWidth < 20) {
+  } else if (textOnlybounds < 20) {
     cur.label.enabled(false);
   }
 };
@@ -6171,18 +6187,13 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.getTagLabelBounds_ = function(label) {
-  var factory = label.getFactory();
+  var backgroundSettings = label.getFinalSettings('background');
 
   var textBounds = label.getTextElement().getBounds();
-  if (factory.background().enabled()) {
+  if (backgroundSettings && backgroundSettings.enabled) {
     var padding = label.getFinalSettings('padding');
-    var paddingObject = {
-      top: padding[0],
-      right: padding[1],
-      bottom: padding[2],
-      left: padding[3]
-    };
-    return anychart.core.utils.Padding.widenBounds(textBounds, paddingObject);
+    var widenedBounds = anychart.core.utils.Padding.widenBounds(textBounds, padding);
+    return widenedBounds;
   }
   return textBounds;
 };
