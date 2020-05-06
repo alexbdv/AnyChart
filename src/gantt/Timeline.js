@@ -6115,8 +6115,7 @@ anychart.ganttModule.TimeLine.prototype.getLeftRestraint_ = function(prev) {
     Math.max(
       prev.bounds.getRight(),
       prev.label.enabled() ?
-        /* Draw is needed to force update changed bounds, maybe better to incorporate
-        in getTagLabelBounds_ logic to modify bounds based on label.width() (?) */
+        // Draw is needed to force update changed bounds.
         prev.label.draw() && this.getTagLabelBounds_(prev.label).getRight() :
         -Infinity
     ) :
@@ -6137,11 +6136,8 @@ anychart.ganttModule.TimeLine.prototype.cropLabelsWithAnyAnchor_ = function(prev
   var curTagLabelAnchor = cur.label.getFinalSettings('anchor').split('-')[0];
   var curTagLabelPosition = cur.label.getFinalSettings('position').split('-')[0];
 
-  var rightSideCropped = hardRightRestraint < curTagLabelBounds.getRight();
-  var curLabelRight = rightSideCropped ? hardRightRestraint : curTagLabelBounds.getRight();
-
-  var leftSideCropped = hardLeftRestraint > curTagLabelBounds.getLeft();
-  var curLabelLeft = leftSideCropped ? hardLeftRestraint : curTagLabelBounds.getLeft();
+  var curLabelRight = Math.min(hardRightRestraint, curTagLabelBounds.getRight());
+  var curLabelLeft = Math.max(hardLeftRestraint, curTagLabelBounds.getLeft());
 
   var newWidth = curLabelRight - curLabelLeft;
   if (newWidth >= 20 && newWidth < curTagLabelBounds.width && curTagLabelAnchor === 'center') {
