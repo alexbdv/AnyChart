@@ -6114,7 +6114,7 @@ anychart.ganttModule.TimeLine.prototype.getTagLabelBounds_ = function(label) {
 
 
 /**
- *
+ * Iterates over sorted array of tags and crops their labels.
  * @param {Array.<anychart.ganttModule.TimeLine.Tag>} tags - Sorted array of tags.
  * @private
  */
@@ -6130,7 +6130,7 @@ anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
 
 
 /**
- *
+ * Returns sorted array of milestones preview tags.
  * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
  * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
  * @private
