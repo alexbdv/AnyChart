@@ -380,9 +380,6 @@ anychart.ganttModule.TimeLine = function(opt_controller, opt_isResources) {
    */
   this.currentLowerTicksUnit_ = null;
 
-  // TODO: describe
-  this.milestonePreviewLabelsCache_ = new Map();
-
   anychart.core.settings.createDescriptorsMeta(this.descriptorsMeta, [
     ['columnStroke', anychart.ConsistencyState.APPEARANCE, anychart.Signal.NEEDS_REDRAW],
     ['cropLabels', anychart.ConsistencyState.TIMELINE_ELEMENTS_LABELS, anychart.Signal.NEEDS_REDRAW],
@@ -1793,7 +1790,6 @@ anychart.ganttModule.TimeLine.prototype.scale = function(opt_value) {
 anychart.ganttModule.TimeLine.prototype.scaleInvalidated_ = function(event) {
   var state = 0;
   if (event.hasSignal(anychart.Signal.NEEDS_RECALCULATION)) {
-    this.milestonePreviewLabelsCache_.clear();
     state |= anychart.ConsistencyState.TIMELINE_SCALES | anychart.ConsistencyState.TIMELINE_MARKERS;
   }
   if (event.hasSignal(anychart.Signal.NEEDS_REAPPLICATION)) {
@@ -5874,14 +5870,6 @@ anychart.ganttModule.TimeLine.prototype.markersInvalidated = function() {
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.labelsInvalidated_ = function(event) {
-  /*
-   Checking for signal "needs redraw" will lead to recalculation of labels crop even if something like fontColor
-   was changed. This is needed, because settings like anchor and position won't emit "bounds changed", but
-   labels cropping should be recalculated.
-   */
-  if (event.hasSignal(anychart.Signal.BOUNDS_CHANGED | anychart.Signal.NEEDS_REDRAW)) {
-    this.milestonePreviewLabelsCache_.clear();
-  }
   this.invalidate(anychart.ConsistencyState.TIMELINE_ELEMENTS_LABELS, anychart.Signal.NEEDS_REDRAW);
 };
 
@@ -5982,41 +5970,12 @@ anychart.ganttModule.TimeLine.prototype.getTagRow = function(tag) {
 
 
 /**
- * Applies cache to the tag.
- * @param {anychart.ganttModule.TimeLine.Tag} tag
- * @param {Object} cache - Object, containing enabled state, width and height.
- */
-anychart.ganttModule.TimeLine.prototype.applyTagCache = function(tag, cache) {
-  if (!goog.isDef(cache)) {
-    return;
-  }
-
-  var label = tag.label;
-  var enabled = cache.enabled;
-  var width = cache.width;
-  var height = cache.height;
-
-  label.enabled(enabled);
-  if (goog.isDef(width)) {
-    label.width(width);
-    label.height(height);
-  }
-};
-
-
-/**
- * Checks if milestone preview labels overlap and crops
- * them if they do.
- * Does it by iterating all uncollapsed items from startIndex (first visible) to
- * endIndex (last visible) items.
+ * Checks if elements labels intersect on the row and crops them if they do.
+ * Only checks intersection of milestone previews on project and milestones + periods on
+ * resource chart.
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
-  /*
-    TODO:
-      1) seems that there are problems with offsetX, which is not taken into account
-      2) take padding into account
-   */
   // Returns all uncollapsed items.
   var visibleItems = this.getVisibleItems();
 
@@ -6031,27 +5990,6 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
     var tags = this.getTagsFromItemRow_(item);
     this.cropTagsLabels_(tags);
   }
-};
-
-
-/**
- * Returns rect, which includes
- * @param {anychart.ganttModule.TimeLine.Tag} tag
- * @returns {anychart.math.Rect}
- * @private
- */
-anychart.ganttModule.TimeLine.prototype.getFullTagBounds_ = function(tag) {
-  var bounds = tag.bounds;
-  var labelBounds = tag.label.getTextElement().getBounds();
-
-  var x = Math.min(bounds.getLeft(), labelBounds.getLeft());
-  var right = Math.max(bounds.getRight(), labelBounds.getRight());
-  return new anychart.math.Rect(
-    x,
-    bounds.top,
-    right - x,
-    bounds.height
-  );
 };
 
 
@@ -6136,7 +6074,7 @@ anychart.ganttModule.TimeLine.prototype.getLabelWidthWithoutPaddings_ = function
  * @param {anychart.ganttModule.TimeLine.Tag?} cur
  * @param {anychart.ganttModule.TimeLine.Tag?} next
  */
-anychart.ganttModule.TimeLine.prototype.cropTagLabel_ = function(prev, cur, next) {
+anychart.ganttModule.TimeLine.prototype.cropCurrentTagLabel_ = function(prev, cur, next) {
   var curTagLabelBounds = this.getTagLabelBounds_(cur.label);
 
   // Get left and right bounds of available space for label.
@@ -6197,7 +6135,7 @@ anychart.ganttModule.TimeLine.prototype.getTagLabelBounds_ = function(label) {
 
 /**
  *
- * @param {Array.<anychart.ganttModule.TimeLine.Tag>} tags
+ * @param {Array.<anychart.ganttModule.TimeLine.Tag>} tags - Sorted array of tags.
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
@@ -6206,7 +6144,7 @@ anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
     var currentTag = tags[i];
     var nextTag = (i < (tags.length - 1)) ? tags[i + 1] : null;
 
-    this.cropTagLabel_(previousTag, currentTag, nextTag);
+    this.cropCurrentTagLabel_(previousTag, currentTag, nextTag);
   }
 };
 
