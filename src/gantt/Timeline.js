@@ -6052,29 +6052,10 @@ anychart.ganttModule.TimeLine.prototype.getLeftRestraint_ = function(prev) {
 
 
 /**
- * Returns size of the text part of the label only.
- * @param {anychart.core.ui.LabelsFactory.Label} label
- * @param {number} width
- * @returns {number}
- */
-anychart.ganttModule.TimeLine.prototype.getLabelWidthWithoutPaddings_ = function(label, width) {
-  var background = label.getFinalSettings('background');
-
-  var leftAndRightPadding = 0;
-  if (background && background.enabled) {
-    var padding = label.getFinalSettings('padding');
-    leftAndRightPadding = (padding.left || 0) + (padding.right || 0);
-  }
-
-  return Math.max(0, width - leftAndRightPadding);
-};
-
-
-/**
  * Crops current tag label, taking previous and next tags and their labels into account.
- * @param {anychart.ganttModule.TimeLine.Tag?} prev
- * @param {anychart.ganttModule.TimeLine.Tag?} cur
- * @param {anychart.ganttModule.TimeLine.Tag?} next
+ * @param {anychart.ganttModule.TimeLine.Tag?} prev - Previous tag.
+ * @param {anychart.ganttModule.TimeLine.Tag?} cur - Current tag.
+ * @param {anychart.ganttModule.TimeLine.Tag?} next - Next tag.
  */
 anychart.ganttModule.TimeLine.prototype.cropCurrentTagLabel_ = function(prev, cur, next) {
   var curTagLabelBounds = this.getTagLabelBounds_(cur.label);
@@ -6091,7 +6072,7 @@ anychart.ganttModule.TimeLine.prototype.cropCurrentTagLabel_ = function(prev, cu
 
   var newWidth = curLabelRight - curLabelLeft;
 
-  if (newWidth >= 20 && newWidth < curTagLabelBounds.width && curTagLabelAnchor === 'center') {
+  if (curTagLabelAnchor === 'center') {
     var anchorPointX;
     if (curTagLabelPosition === 'center') {
       anchorPointX = cur.bounds.getLeft() + cur.bounds.width / 2;
@@ -6105,12 +6086,10 @@ anychart.ganttModule.TimeLine.prototype.cropCurrentTagLabel_ = function(prev, cu
     newWidth = Math.min(anchorPointX - curLabelLeft, curLabelRight - anchorPointX) * 2;
   }
 
-  var textOnlybounds = this.getLabelWidthWithoutPaddings_(cur.label, newWidth);
-
-  if (textOnlybounds >= 20 && newWidth < curTagLabelBounds.width) {
+  if (newWidth >= 20 && newWidth < curTagLabelBounds.width) {
     cur.label.width(newWidth);
     cur.label.height(curTagLabelBounds.height);
-  } else if (textOnlybounds < 20) {
+  } else if (newWidth < 20) {
     cur.label.enabled(false);
   }
 };
