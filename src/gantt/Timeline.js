@@ -5876,10 +5876,10 @@ anychart.ganttModule.TimeLine.prototype.labelsInvalidated_ = function(event) {
 
 /**
  * Finds tag for given data item and row.
- * @param {(anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem)} item
- * @param {anychart.ganttModule.elements.TimelineElement} element
- * @param {number} row
- * @return {anychart.ganttModule.TimeLine.Tag?}
+ * @param {(anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem)} item - Data item.
+ * @param {anychart.ganttModule.elements.TimelineElement} element - Element whose tags data to use.
+ * @param {number} row - Row number.
+ * @return {anychart.ganttModule.TimeLine.Tag?} - Tag or null, if tag is not found.
  */
 anychart.ganttModule.TimeLine.prototype.getTagByItemAndElement = function(item, element, row) {
   var tagsData = element.shapeManager.getTagsData();
