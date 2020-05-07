@@ -5880,14 +5880,15 @@ anychart.ganttModule.TimeLine.prototype.labelsInvalidated_ = function(event) {
  * @param {anychart.ganttModule.elements.TimelineElement} element - Element whose tags data to use.
  * @param {number} row - Row number.
  * @return {anychart.ganttModule.TimeLine.Tag?} - Tag or null, if tag is not found.
+ * @private
  */
-anychart.ganttModule.TimeLine.prototype.getTagByItemAndElement = function(item, element, row) {
+anychart.ganttModule.TimeLine.prototype.getTagByItemAndElement_ = function(item, element, row) {
   var tagsData = element.shapeManager.getTagsData();
 
   for (var tagKey in tagsData) {
     if (tagsData.hasOwnProperty(tagKey)) {
       var tag = tagsData[tagKey];
-      if (tag.item === item && this.getTagRow(tag) === row) {
+      if (tag.item === item && this.getTagRow_(tag) === row) {
         return tag;
       }
     }
@@ -5904,8 +5905,9 @@ anychart.ganttModule.TimeLine.prototype.getTagByItemAndElement = function(item, 
  * @param {anychart.ganttModule.TimeLine.Tag?} tag1
  * @param {anychart.ganttModule.TimeLine.Tag?} tag2
  * @return {number}
+ * @private
  */
-anychart.ganttModule.TimeLine.tagsBinaryInsertCallback = function(tag1, tag2) {
+anychart.ganttModule.TimeLine.tagsBinaryInsertCallback_ = function(tag1, tag2) {
   var anchor = /** @type {string} */(tag1.label.getFinalSettings('anchor'));
 
   var tag1bounds = tag1.label.getTextElement().getBounds();
@@ -5941,10 +5943,10 @@ anychart.ganttModule.TimeLine.prototype.getPreviewMilestonesTags_ = function(dep
 
   if (depthMatches) {
     if (anychart.ganttModule.BaseGrid.isProjectMilestone(item)) {
-      var tag = this.getTagByItemAndElement(item, this.milestones().preview(), row);
+      var tag = this.getTagByItemAndElement_(item, this.milestones().preview(), row);
       var label = goog.isDefAndNotNull(tag) ? tag.label : void 0;
       if (goog.isDef(label) && label.enabled()) {
-        goog.array.binaryInsert(tagsArr, tag, anychart.ganttModule.TimeLine.tagsBinaryInsertCallback);
+        goog.array.binaryInsert(tagsArr, tag, anychart.ganttModule.TimeLine.tagsBinaryInsertCallback_);
       }
     } else {
       for (var i = 0; i < item.numChildren(); i++) {
@@ -5962,8 +5964,9 @@ anychart.ganttModule.TimeLine.prototype.getPreviewMilestonesTags_ = function(dep
  * Calculates tag row by it's position.
  * @param {anychart.ganttModule.TimeLine.Tag} tag - Tag whose row should be calculated.
  * @return {number} - Row.
+ * @private
  */
-anychart.ganttModule.TimeLine.prototype.getTagRow = function(tag) {
+anychart.ganttModule.TimeLine.prototype.getTagRow_ = function(tag) {
   var height = this.controller.verticalOffset() + tag.bounds.top - this.headerHeight();
   return this.controller.getIndexByHeight(height);
 };
@@ -5987,6 +5990,11 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
   for (var i = startIndex; i <= endIndex; i++) {
     var item = visibleItems[i];
 
+    /*
+      Tags are used, because they have all the information needed to crop labels.
+      They contain tag bounds and instance of label being drawn. And also when we collect
+      tags we only get what is drawn on the screen.
+     */
     var tags = this.getTagsFromItemRow_(item);
     this.cropTagsLabels_(tags);
   }
@@ -6153,7 +6161,7 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = functi
   var tags = [];
 
   if (goog.isDef(itemTag)) {
-    var curRow = this.getTagRow(itemTag);
+    var curRow = this.getTagRow_(itemTag);
     this.getPreviewMilestonesTags_(0, tags, item, curRow);
   }
 
@@ -6178,7 +6186,7 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function
     if (periodsTagsData.hasOwnProperty(tagKey)) {
       tag = periodsTagsData[tagKey];
       if (tag.item === item) {
-        goog.array.binaryInsert(periodsTags, tag, anychart.ganttModule.TimeLine.tagsBinaryInsertCallback);
+        goog.array.binaryInsert(periodsTags, tag, anychart.ganttModule.TimeLine.tagsBinaryInsertCallback_);
       }
     }
   }
@@ -6187,7 +6195,7 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function
     if (milestonesTagsData.hasOwnProperty(tagKey)) {
       tag = milestonesTagsData[tagKey];
       if (tag.item === item) {
-        goog.array.binaryInsert(periodsTags, tag, anychart.ganttModule.TimeLine.tagsBinaryInsertCallback);
+        goog.array.binaryInsert(periodsTags, tag, anychart.ganttModule.TimeLine.tagsBinaryInsertCallback_);
       }
     }
   }
