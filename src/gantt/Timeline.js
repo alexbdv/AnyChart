@@ -6064,15 +6064,14 @@ anychart.ganttModule.TimeLine.prototype.cropCurrentTagLabel_ = function(prev, cu
   var hardRightRestraint = this.getRightRestraint_(cur, next);
   var hardLeftRestraint = this.getLeftRestraint_(prev);
 
+  var labelFinalRight = Math.min(hardRightRestraint, curTagLabelBounds.getRight());
+  var labelFinalLeft = Math.max(hardLeftRestraint, curTagLabelBounds.getLeft());
+
+  var newWidth = labelFinalRight - labelFinalLeft;
+
   var curTagLabelAnchor = cur.label.getFinalSettings('anchor').split('-')[0];
-  var curTagLabelPosition = cur.label.getFinalSettings('position').split('-')[0];
-
-  var curLabelRight = Math.min(hardRightRestraint, curTagLabelBounds.getRight());
-  var curLabelLeft = Math.max(hardLeftRestraint, curTagLabelBounds.getLeft());
-
-  var newWidth = curLabelRight - curLabelLeft;
-
   if (curTagLabelAnchor === 'center') {
+    var curTagLabelPosition = cur.label.getFinalSettings('position').split('-')[0];
     var anchorPointX;
     if (curTagLabelPosition === 'center') {
       anchorPointX = cur.bounds.getLeft() + cur.bounds.width / 2;
@@ -6083,7 +6082,7 @@ anychart.ganttModule.TimeLine.prototype.cropCurrentTagLabel_ = function(prev, cu
     if (curTagLabelPosition === 'left') {
       anchorPointX = cur.bounds.getLeft();
     }
-    newWidth = Math.min(anchorPointX - curLabelLeft, curLabelRight - anchorPointX) * 2;
+    newWidth = Math.min(anchorPointX - labelFinalLeft, labelFinalRight - anchorPointX) * 2;
   }
 
   if (newWidth >= 20 && newWidth < curTagLabelBounds.width) {
