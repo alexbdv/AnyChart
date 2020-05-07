@@ -5994,10 +5994,10 @@ anychart.ganttModule.TimeLine.prototype.cropElementsLabels_ = function() {
 
 
 /**
- *
- * @param {anychart.ganttModule.TimeLine.Tag} cur
- * @param {anychart.ganttModule.TimeLine.Tag?} next
- * @returns {number}
+ * Returns rightmost available x value for current tag label.
+ * @param {anychart.ganttModule.TimeLine.Tag} cur - Current tag.
+ * @param {anychart.ganttModule.TimeLine.Tag?} next - Next tag.
+ * @returns {number} - Right restraint for current tag label.
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next) {
@@ -6012,9 +6012,10 @@ anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next)
 
   /*
     As simple as that:
-      1) If next label righter than next tag itself, right restraint is left side of the tag.
-      2) If next label is on the left side, but no further than middle between current tag right and next tag left, label left side is restraint.
-      3) If next label is on the left and further, than the middle line, use middle line as restraint.
+      1) If next label is righter than next tag itself, right restraint is left side of the next tag.
+      2) If next label is on the left side, but no further than middle point between current tag right
+        and next tag left, next label left side is a restraint.
+      3) If next label is on the left and crosses the middle point between tags, use middle point as a restraint.
    */
 
   if (nextTagLabelBounds.getLeft() < next.bounds.getLeft() && delta > 0) {
@@ -6030,10 +6031,11 @@ anychart.ganttModule.TimeLine.prototype.getRightRestraint_ = function(cur, next)
 
 
 /**
- * Returns rightmost x value of tag, which is either label right boundary,
+ * Returns left restraint for current label, based on previous tag and label.
+ * It is rightmost x value of previous tag, which is either label right boundary,
  * or tag itself right boundary if label is disabled.
  * @param {anychart.ganttModule.TimeLine.Tag?} prev - Previous tag.
- * @returns {number}
+ * @returns {number} - Left restraint for current label.
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.getLeftRestraint_ = function(prev) {
@@ -6050,17 +6052,17 @@ anychart.ganttModule.TimeLine.prototype.getLeftRestraint_ = function(prev) {
 
 
 /**
- *
+ * Returns size of the text part of the label only.
  * @param {anychart.core.ui.LabelsFactory.Label} label
  * @param {number} width
  * @returns {number}
  */
 anychart.ganttModule.TimeLine.prototype.getLabelWidthWithoutPaddings_ = function(label, width) {
-  var padding = label.getFinalSettings('padding');
   var background = label.getFinalSettings('background');
 
   var leftAndRightPadding = 0;
   if (background && background.enabled) {
+    var padding = label.getFinalSettings('padding');
     leftAndRightPadding = (padding.left || 0) + (padding.right || 0);
   }
 
