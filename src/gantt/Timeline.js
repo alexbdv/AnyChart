@@ -6311,8 +6311,7 @@ anychart.ganttModule.TimeLine.prototype.drawLabels_ = function() {
     }
   }
 
-  // If elements are not initialised - most probably chart was not drawn.
-  if (this.getOption('cropLabels') && this.elements_) {
+  if (this.getOption('cropLabels')) {
     this.cropElementsLabels_();
   }
 
