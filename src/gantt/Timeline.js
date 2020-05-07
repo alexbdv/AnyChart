@@ -6136,12 +6136,7 @@ anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = function(item) {
-  var tagsData;
-  if (anychart.ganttModule.BaseGrid.isGroupingTask(item)) {
-    tagsData = this.groupingTasks().shapeManager.getTagsData();
-  } else if (anychart.ganttModule.BaseGrid.isBaseline(item)) {
-    tagsData = this.baselines().shapeManager.getTagsData();
-  }
+  var tagsData = this.groupingTasks().shapeManager.getTagsData();
 
   var itemTag;
 
@@ -6167,7 +6162,7 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = functi
 
 
 /**
- *
+ * Returns sorted array of tags, belonging to the row with given item.
  * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
  * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
  * @private
@@ -6202,13 +6197,14 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function
 
 
 /**
+ * Returns sorted array of tags for given item.
  * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
- * @returns {Array}
+ * @returns {Array.<anychart.ganttModule.TimeLine.Tag>} - Array with tags.
  */
 anychart.ganttModule.TimeLine.prototype.getTagsFromItemRow_ = function(item) {
   if (anychart.ganttModule.BaseGrid.isPeriod(item)) {
     return this.getTagsFromResourcePeriodRow_(item);
-  } else if (anychart.ganttModule.BaseGrid.isGroupingTask(item) || anychart.ganttModule.BaseGrid.isBaseline(item)) {
+  } else if (anychart.ganttModule.BaseGrid.isGroupingTask(item)) {
     return this.getTagsFromProjectGroupingTask_(item);
   }
   return [];
@@ -6317,7 +6313,6 @@ anychart.ganttModule.TimeLine.prototype.drawLabels_ = function() {
 
   // If elements are not initialised - most probably chart was not drawn.
   if (this.getOption('cropLabels') && this.elements_) {
-    console.log('Labels crop called');
     this.cropElementsLabels_();
   }
 
