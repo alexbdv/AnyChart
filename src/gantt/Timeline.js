@@ -6140,7 +6140,7 @@ anychart.ganttModule.TimeLine.prototype.cropTagsLabels_ = function(tags) {
 /**
  * Returns sorted array of milestones preview tags.
  * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
- * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
+ * @returns {Array.<anychart.ganttModule.TimeLine.Tag>} - Sorted array of tags.
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = function(item) {
@@ -6171,8 +6171,8 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromProjectGroupingTask_ = functi
 
 /**
  * Returns sorted array of tags, belonging to the row with given item.
- * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
- * @returns {Array.<anychart.ganttModule.TimeLine.Tag>}
+ * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item - Data item.
+ * @returns {Array.<anychart.ganttModule.TimeLine.Tag>} - Sorted array of tags.
  * @private
  */
 anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function(item) {
@@ -6205,9 +6205,9 @@ anychart.ganttModule.TimeLine.prototype.getTagsFromResourcePeriodRow_ = function
 
 
 /**
- * Returns sorted array of tags for given item.
- * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item
- * @returns {Array.<anychart.ganttModule.TimeLine.Tag>} - Array with tags.
+ * Returns sorted array of tags for given data item.
+ * @param {anychart.treeDataModule.Tree.DataItem|anychart.treeDataModule.View.DataItem} item - Data item.
+ * @returns {Array.<anychart.ganttModule.TimeLine.Tag>} - Sorted array of tags.
  */
 anychart.ganttModule.TimeLine.prototype.getTagsFromItemRow_ = function(item) {
   if (anychart.ganttModule.BaseGrid.isPeriod(item)) {
